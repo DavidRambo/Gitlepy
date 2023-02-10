@@ -11,12 +11,18 @@ def runner():
     return CliRunner()
 
 
-def test_main_no_arguments(runner):
+@pytest.mark.parametrize(
+    ("cmd", "expected"),
+    (
+        ([""], "Incorrect operands.\n"),
+        (["init"], "Initializing gitlepy repository.\n"),
+    ),
+)
+def test_main_no_arguments(runner, cmd, expected):
     """Check for main.py run without any arguments."""
-    # result = runner.invoke(main, ["init"])
-    result = runner.invoke(main, [""])
+    result = runner.invoke(main, cmd)
     assert result.exit_code == 0
-    assert result.output == "Incorrect operands.\n"
+    assert result.output == expected
 
 
 # def test_main_no_arguments(capsys):
