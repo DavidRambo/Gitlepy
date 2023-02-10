@@ -14,8 +14,13 @@ def runner():
 @pytest.mark.parametrize(
     ("cmd", "expected"),
     (
-        ([""], "Incorrect operands.\n"),
-        (["init"], "Initializing gitlepy repository.\n"),
+        pytest.param([""], "Incorrect operands.\n", id="empty_arg"),
+        pytest.param(
+            ["init"], "Initializing gitlepy repository.\n", id="init_new_print"
+        ),
+        # pytest.param(
+        #     ["init"], "Gitlepy repository already exists.\n", id="init_already_exists"
+        # ),
     ),
 )
 def test_main_no_arguments(runner, cmd, expected):
