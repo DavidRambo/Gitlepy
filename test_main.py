@@ -37,3 +37,12 @@ def test_main_print_statements(runner, cmd, expected):
 #     out, err = capsys.readouterr()
 #     assert out == "Incorrect operands."
 #     assert err == ""
+
+
+def test_init_new_repo(runner):
+    """Tries to initialize a new Gitlepy repository.
+    Uses click.testing's CliRunner.isolated_filesystem() to create a temporary
+    directory in which gitlepy sets up its repository.
+    https://click.palletsprojects.com/en/8.1.x/testing/#file-system-isolation
+    """
+    pass
