@@ -1,0 +1,10 @@
+[project]
+name = "gitlepy"
+version = "0.1.0"
+authors = [
+    {name = "David Rambo", email = "davidrambo@mailfence.com"},
+]
+description = "A Python implementation of UCB 61B's Gitlet project."
+readme = "README.md"
+requires-python = ">=3.11"
+
