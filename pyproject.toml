@@ -8,6 +8,9 @@ description = "A Python implementation of UCB 61B's Gitlet project."
 readme = "README.md"
 requires-python = ">=3.11"
 
+[tool.black]
+line-length = 88
+
 [tool.pytest.ini_options]
 addopts = "--cov --cov-reprot"
 
