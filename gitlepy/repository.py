@@ -6,17 +6,17 @@ from pathlib import Path
 
 # filesystem constants
 WORK_DIR = Path(Path.cwd() / "work")
-GITLET_DIR = Path(WORK_DIR / ".gitlet")
-BLOBS_DIR = Path(GITLET_DIR / "blobs")
-COMMITS_DIR = Path(GITLET_DIR / "commits")
-BRANCHES = Path(GITLET_DIR / "refs")
-INDEX = Path(GITLET_DIR / "index")
-HEAD = Path(GITLET_DIR / "HEAD")
+GITLEPY_DIR = Path(WORK_DIR / ".gitlepy")
+BLOBS_DIR = Path(GITLEPY_DIR / "blobs")
+COMMITS_DIR = Path(GITLEPY_DIR / "commits")
+BRANCHES = Path(GITLEPY_DIR / "refs")
+INDEX = Path(GITLEPY_DIR / "index")
+HEAD = Path(GITLEPY_DIR / "HEAD")
 
 
 def init() -> None:
     """Initializes a new Gitlepy repository unless one already exists."""
-    if GITLET_DIR.exists():
+    if GITLEPY_DIR.exists():
         print("Gitlepy repository already exists.")
         return
 
@@ -24,6 +24,7 @@ def init() -> None:
     # Create directories
     if not WORK_DIR.exists():
         WORK_DIR.mkdir()
+    GITLEPY_DIR.mkdir()
     BLOBS_DIR.mkdir()
     COMMITS_DIR.mkdir()
     BRANCHES.mkdir()
