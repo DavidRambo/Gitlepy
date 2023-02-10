@@ -23,7 +23,7 @@ def runner():
         # ),
     ),
 )
-def test_main_no_arguments(runner, cmd, expected):
+def test_main_print_statements(runner, cmd, expected):
     """Check for main.py run without any arguments."""
     result = runner.invoke(main, cmd)
     assert result.exit_code == 0
