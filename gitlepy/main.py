@@ -5,7 +5,7 @@ import click
 # from typing import Optional
 from typing import Sequence
 
-import repository
+from gitlepy import repository
 
 
 @click.command()
