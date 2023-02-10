@@ -1,9 +1,12 @@
+# pyproject.toml
 [project]
 name = "gitlepy"
 version = "0.1.0"
 authors = [
     {name = "David Rambo", email = "davidrambo@mailfence.com"},
 ]
+homepage = "http://github.com/DavidRambo/Gitlepy"
+repository = "http://github.com/DavidRambo/Gitlepy"
 description = "A Python implementation of UCB 61B's Gitlet project."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -11,8 +14,13 @@ requires-python = ">=3.11"
 [tool.black]
 line-length = 88
 
-[tool.pytest.ini_options]
-addopts = "--cov --cov-reprot"
+[tool.coverage.paths]
+source = ["gitlepy", "*/site-packages"]
 
 [tool.coverage.run]
+branch = true
 source = ["gitlepy"]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 100
