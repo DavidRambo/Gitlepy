@@ -5,20 +5,26 @@ version = "0.1.0"
 authors = [
     {name = "David Rambo", email = "davidrambo@mailfence.com"},
 ]
-homepage = "http://github.com/DavidRambo/Gitlepy"
-repository = "http://github.com/DavidRambo/Gitlepy"
 description = "A Python implementation of UCB 61B's Gitlet project."
 readme = "README.md"
 requires-python = ">=3.11"
+
+[project.urls]
+homepage = "http://github.com/DavidRambo/Gitlepy"
+repository = "http://github.com/DavidRambo/Gitlepy"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
 
 [tool.black]
 line-length = 88
 
 [tool.pytest.ini_options]
-# addopts = ["--import-mode=importlib",]
+addopts = ["--import-mode=importlib",]
 
 [tool.coverage.paths]
-source = ["gitlepy", "*/site-packages"]
+source = ["src", "*/site-packages"]
 
 [tool.coverage.run]
 branch = true
