@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 # filesystem constants
-WORK_DIR = Path(Path.cwd() / "work")
+WORK_DIR = Path.cwd()
 GITLEPY_DIR = Path(WORK_DIR / ".gitlepy")
 BLOBS_DIR = Path(GITLEPY_DIR / "blobs")
 COMMITS_DIR = Path(GITLEPY_DIR / "commits")
