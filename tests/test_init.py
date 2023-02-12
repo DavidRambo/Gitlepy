@@ -18,23 +18,22 @@ def runner():
 @pytest.fixture(autouse=True)
 def setup_teardown():
     """Cleans up the Gitlepy repository for subsequent tests."""
-    workdir = repo.WORK_DIR
-    if workdir.exists():
-        shutil.rmtree(workdir)
+    gitlpydir = repo.GITLEPY_DIR
+    if gitlpydir.exists():
+        shutil.rmtree(gitlpydir)
     yield
-    if workdir.exists():
-        shutil.rmtree(workdir)
+    if gitlpydir.exists():
+        shutil.rmtree(gitlpydir)
 
 
-def test_main_init_new_repo(runner, tmp_dir="tmp_dir"):
+def test_main_init_new_repo(runner, tmp_path):
     """Creates a new repository successfully.
     Uses click.testing's CliRunner.isolated_filesystem() to create a temporary
     directory in which gitlepy sets up its repository.
     https://click.palletsprojects.com/en/8.1.x/testing/#file-system-isolation
     """
-    with runner.isolated_filesystem(temp_dir=tmp_dir):
+    with runner.isolated_filesystem():
         result = runner.invoke(main, ["init"])
-        assert repo.WORK_DIR.exists()
         assert repo.GITLEPY_DIR.exists()
         assert repo.BLOBS_DIR.exists()
         assert repo.COMMITS_DIR.exists()
@@ -50,10 +49,9 @@ def test_main_init_new_repo(runner, tmp_dir="tmp_dir"):
         assert result.output == "Initializing gitlepy repository.\n"
 
 
-def test_main_init_already_exists(runner):
+def test_main_init_already_exists(runner, tmp_path):
     """Tries to create a new repository where one already exists."""
     with runner.isolated_filesystem():
-        repo.WORK_DIR.mkdir()
         repo.GITLEPY_DIR.mkdir()
         result = runner.invoke(main, ["init"])
         assert result.exit_code == 0
