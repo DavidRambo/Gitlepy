@@ -22,8 +22,6 @@ def init() -> None:
 
     print("Initializing gitlepy repository.")
     # Create directories
-    if not WORK_DIR.exists():
-        WORK_DIR.mkdir()
     GITLEPY_DIR.mkdir()
     BLOBS_DIR.mkdir()
     COMMITS_DIR.mkdir()
