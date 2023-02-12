@@ -10,8 +10,8 @@ readme = "README.md"
 requires-python = ">=3.11"
 
 [project.urls]
-homepage = "http://github.com/DavidRambo/Gitlepy"
-repository = "http://github.com/DavidRambo/Gitlepy"
+homepage = "http://github.com/DavidRambo/gitlepy"
+repository = "http://github.com/DavidRambo/gitlepy"
 
 [build-system]
 requires = ["hatchling"]
