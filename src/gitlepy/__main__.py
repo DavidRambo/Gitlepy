@@ -14,6 +14,9 @@ def main(command: Sequence[str] = None) -> None:
     if command == "init":
         # click.echo("Initializing gitlepy repository.")
         repository.init()
+    elif not repository.GITLEPY_DIR.exists():
+        # For all other commands, ensure gitlepy repo exists.
+        click.echo("No Gitlepy repository here.")
     else:
         click.echo("Incorrect operands.")
 
