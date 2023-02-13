@@ -9,7 +9,7 @@ from gitlepy import repository
 
 
 @click.command()
-@click.argument("command")
+@click.argument("command")  # TODO: handle additional arguments
 def main(command: Sequence[str] = None) -> None:
     if command == "init":
         # click.echo("Initializing gitlepy repository.")
@@ -17,6 +17,22 @@ def main(command: Sequence[str] = None) -> None:
     elif len(command) > 0 and not repository.GITLEPY_DIR.exists():
         # For all other commands, ensure gitlepy repo exists.
         click.echo("Not a Gitlepy repository.")
+    if command == "add":
+        pass
+    if command == "rm":
+        pass
+    if command == "commit":
+        pass
+    if command == "checkout":
+        pass
+    if command == "log":
+        pass
+    if command == "status":
+        pass
+    if command == "branch":
+        pass
+    if command == "rm-branch":
+        pass
     else:
         click.echo("Incorrect operands.")
 
