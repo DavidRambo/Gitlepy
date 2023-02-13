@@ -3,40 +3,44 @@
 import click
 
 # from typing import Optional
-from typing import Sequence
+# from typing import Sequence
 
 from gitlepy import repository
 
 
-@click.command()
-@click.argument("command")  # TODO: handle additional arguments
-def main(command: Sequence[str] = None) -> None:
-    if command == "init":
-        # click.echo("Initializing gitlepy repository.")
+@click.group(invoke_without_command=True)
+@click.pass_context
+def main(ctx):
+    ctx.ensure_object(dict)
+
+    if ctx.invoked_subcommand is None:
+        click.echo("Incorrect operands.")
+        return
+
+    ctx.obj["REPO"] = repository.GITLEPY_DIR.exists()
+    # if ctx.invoked_subcommand is None:
+    #     """No commands passed to gitlepy."""
+    #     click.echo("Incorrect operands.")
+
+
+@main.command()
+@click.pass_context
+def init(ctx):
+    """Initialize new Gitlepy repository if one does not already exist."""
+
+    if ctx.obj["REPO"]:
+        click.echo("Gitlepy repository already exists.")
+    else:
         return repository.init()
-    elif len(command) > 0 and not repository.GITLEPY_DIR.exists():
-        # For all other commands, ensure gitlepy repo exists.
+
+
+@main.command()
+@click.argument("filename")
+@click.pass_context
+def add(ctx, filename: str):
+    if not ctx.obj["REPO"]:
         click.echo("Not a Gitlepy repository.")
         return
-    if command == "add":
-        pass
-        return
-    if command == "rm":
-        pass
-    if command == "commit":
-        pass
-    if command == "checkout":
-        pass
-    if command == "log":
-        pass
-    if command == "status":
-        pass
-    if command == "branch":
-        pass
-    if command == "rm-branch":
-        pass
-    else:
-        click.echo("Incorrect operands.")
 
 
 if __name__ == "__main__":

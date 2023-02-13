@@ -16,9 +16,6 @@ HEAD = Path(GITLEPY_DIR / "HEAD")
 
 def init() -> None:
     """Initializes a new Gitlepy repository unless one already exists."""
-    if GITLEPY_DIR.exists():
-        print("Gitlepy repository already exists.")
-        return
 
     print("Initializing gitlepy repository.")
     # Create directories

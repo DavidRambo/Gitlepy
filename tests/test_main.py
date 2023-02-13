@@ -14,8 +14,8 @@ def runner():
 @pytest.mark.parametrize(
     ("cmd", "expected"),
     (
-        pytest.param([""], "Incorrect operands.\n", id="empty_arg"),
-        pytest.param(["add"], "Not a Gitlepy repository.\n", id="no_repo"),
+        pytest.param([], "Incorrect operands.\n", id="empty_arg"),
+        pytest.param(["add", "filename"], "Not a Gitlepy repository.\n", id="no_repo"),
         # pytest.param(
         #     ["init"], "Initializing gitlepy repository.\n", id="init_new_print"
         # ),
