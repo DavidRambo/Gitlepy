@@ -6,7 +6,7 @@ import shutil
 from click.testing import CliRunner
 import pytest
 
-from gitlepy.main import main
+from gitlepy.__main__ import main
 import gitlepy.repository as repo
 
 
@@ -32,7 +32,7 @@ def test_main_init_new_repo(runner, tmp_path):
     directory in which gitlepy sets up its repository.
     https://click.palletsprojects.com/en/8.1.x/testing/#file-system-isolation
     """
-    with runner.isolated_filesystem():
+    with runner.isolated_filesystem(tmp_path):
         result = runner.invoke(main, ["init"])
         assert repo.GITLEPY_DIR.exists()
         assert repo.BLOBS_DIR.exists()

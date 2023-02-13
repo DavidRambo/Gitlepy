@@ -3,7 +3,7 @@
 from click.testing import CliRunner
 import pytest
 
-from gitlepy.main import main
+from gitlepy.__main__ import main
 
 
 @pytest.fixture
