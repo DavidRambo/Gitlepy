@@ -1,7 +1,6 @@
 # tests/test_init.py
 """Tests the init command."""
 from pathlib import Path
-import shutil
 
 from click.testing import CliRunner
 import pytest
@@ -23,7 +22,7 @@ def test_main_init_new_repo(runner):
     """
     # with runner.isolated_filesystem(tmp_path):
     #     print(f"\n>>>>\n{tmp_path=}\n<<<<<\n")
-    print(f"\n<<<<\n{Path.cwd()=}\n>>>>>\n")
+    # print(f"\n<<<<\n{Path.cwd()=}\n>>>>>\n")
     result = runner.invoke(main, ["init"])
     assert repo.GITLEPY_DIR.exists()
     assert repo.BLOBS_DIR.exists()
