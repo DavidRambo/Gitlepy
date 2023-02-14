@@ -3,6 +3,8 @@ import pytest
 
 from gitlepy import repository as repo
 
+# TODO: Setup new temporary directory for each test, and provide option to keep
+
 
 @pytest.fixture(autouse=True)
 def change_dir(request, monkeypatch):
