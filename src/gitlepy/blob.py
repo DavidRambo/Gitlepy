@@ -20,4 +20,4 @@ class Blob:
             filename: Name of the file to be recorded as a blob.
         """
         self.file_contents = file_contents
-        self.id = hash(file_contents)
+        self.id = str(hash(file_contents))
