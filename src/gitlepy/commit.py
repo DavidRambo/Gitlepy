@@ -26,12 +26,13 @@ class Commit:
             parent_two: In the event of a merge, ID of the merge commit.
             message: Commit message.
         """
-        if parent_one == "":  # initial commit has no parent
-            self.parent_one = None
+        if parent_one == "":
+            self.parent_one = None  # initial commit has no parent
+            self.timestamp = datetime.fromtimestamp(0)  # common timestamp
         else:
             self.parent_one = parent_one
+            self.timestamp = datetime.now()
         self.message = message
-        self.timestamp = datetime.now()
         self.commit_id = str(hash(self.message + str(self.timestamp)))
 
     def __repr__(self):
