@@ -3,13 +3,12 @@ import pytest
 
 from gitlepy import repository as repo
 
-# TODO: Setup new temporary directory for each test, and provide option to keep
-
 
 @pytest.fixture(autouse=True)
-def change_dir(request, monkeypatch):
+def change_dir(request, monkeypatch, tmp_path):
     """Changes the CWD to the test directory."""
-    monkeypatch.chdir(request.fspath.dirname)
+    # monkeypatch.chdir(request.fspath.dirname)
+    monkeypatch.chdir(tmp_path)
 
 
 @pytest.fixture(autouse=True)
