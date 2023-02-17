@@ -43,9 +43,7 @@ def init(ctx):
 @click.pass_context
 def add(ctx, filename: str):
     """Add a file to the staging area."""
-    # if not ctx.obj["REPO"]:
-    #     click.echo("Not a Gitlepy repository.")
-    #     return
+    pass
 
 
 @main.command()
@@ -53,9 +51,6 @@ def add(ctx, filename: str):
 @click.pass_context
 def commit(ctx, message: str):
     """Commit contents in staging area to Gitlepy repository."""
-    # if not ctx.obj["REPO"]:
-    #     click.echo("Not a Gitlepy repository.")
-    #     return
     pass
 
 
