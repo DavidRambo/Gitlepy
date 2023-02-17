@@ -4,8 +4,9 @@ All commands from gitlepy.main are dispatched to various functions in this modul
 from pathlib import Path
 import pickle
 
-from gitlepy import index
+from gitlepy.index import Index
 from gitlepy.commit import Commit
+from gitlepy.blob import Blob
 
 
 # filesystem constants
@@ -30,7 +31,7 @@ def init() -> None:
 
     # create staging area
     INDEX.touch()
-    new_index = index.Index()
+    new_index = Index()
     with open(INDEX, "wb") as file:
         pickle.dump(new_index, file)
 
@@ -53,6 +54,66 @@ def init() -> None:
     return
 
 
+def add(filename: str) -> None:
+    """Stages a file in the working directory for addition.
+    If the file to be staged is identical to the one recorded by the current
+    commit, then do not stage it.
+
+    Args:
+        filename: Name of the file to be staged for addition.
+    """
+    # Create Path object
+    filepath = Path(WORK_DIR / filename)
+    # Read contents into new blob
+    new_blob = Blob(filepath.read_text())
+    # Load the staging area
+    index = load_index()
+
+    # Is it unchanged since most recent commit?
+    current_commit = load_commit(get_current_branch)
+    if new_blob.id in current_commit.blobs.keys():
+        with open(Path(BLOBS_DIR / new_blob.id), "rb") as file:
+            commit_blob = pickle.load(file)
+        if new_blob.file_contents == commit_blob.file_contents:
+            # Yes -> Do not stage, and remove if already staged.
+            index.unstage(filename)
+
+    # Stage file with blob in the staging area.
+    index.stage(filename, new_blob.id)
+    # Save blob.
+    with open(Path(BLOBS_DIR / new_blob.id), "wb") as file:
+        pickle.dump(new_blob, file)
+
+
+def commit(message: str) -> None:
+    """Creates a new commit object and saves it to the repository.
+
+    Args:
+        message: Commit message.
+    """
+    # Get id of current commit -> this will be parent of new commit.
+    pass
+
+
+def get_current_branch() -> str:
+    """Returns the name of the currently checked out branch."""
+    return HEAD.read_text()
+
+
+def load_commit(branch_name: str) -> Commit:
+    """Returns the head commit object of the given branch."""
+    head_commit_id = Path(BRANCHES / branch_name).read_text()
+    head_commit_path = Path(COMMITS_DIR / head_commit_id)
+    with open(head_commit_path, "rb") as file:
+        return pickle.load(file)
+
+
+def load_index() -> Index:
+    """Loads the staging area, i.e. the Index object."""
+    with open(INDEX, "rb") as file:
+        return pickle.load(file)
+
+
 # def _updateHead(branch_name: str) -> None:
-#     """Truncates the HEAD files with the name of a branch."""
+#     """Truncates the HEAD file with the name of a branch."""
 #     HEAD.write_text(branch_name)
