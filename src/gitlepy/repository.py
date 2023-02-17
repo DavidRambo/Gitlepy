@@ -2,6 +2,9 @@
 Handles the logic for managing a Gitlepy repository.
 All commands from gitlepy.main are dispatched to various functions in this module."""
 from pathlib import Path
+import pickle
+
+from gitlepy import index
 
 
 # filesystem constants
@@ -24,8 +27,11 @@ def init() -> None:
     COMMITS_DIR.mkdir()
     BRANCHES.mkdir()
 
-    # create staging area file
+    # create staging area
     INDEX.touch()
+    new_index = index.Index()
+    with open(INDEX, "wb") as file:
+        pickle.dump(new_index, file)
 
     # Create initial commit.
 
