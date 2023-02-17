@@ -28,13 +28,13 @@ class Index:
     def __repr__(self):
         return f"{type(self).__name__}"
 
-    def getAdditions(self) -> Dict[str, str]:
-        """Provides access to the mapping of files staged for addition."""
-        return self.additions
+    # def getAdditions(self) -> Dict[str, str]:
+    #     """Provides access to the mapping of files staged for addition."""
+    #     return self.additions
 
-    def getRemovals(self) -> Set[str]:
-        """Provides access to the names of files staged for removal."""
-        return self.removals
+    # def getRemovals(self) -> Set[str]:
+    #     """Provides access to the names of files staged for removal."""
+    #     return self.removals
 
     def stage(self, filename: str, blob_id: str) -> None:
         """Stages the file with the given filename for addition.
