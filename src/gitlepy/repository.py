@@ -114,6 +114,17 @@ def load_index() -> Index:
         return pickle.load(file)
 
 
+def get_blobs(commit_id: str) -> Dict[str, str]:
+    """Returns the dictionary of blobs belonging to the commit object with the
+    specified commit_id.
+
+    Args:
+        commit_id: Name of the commit.
+    """
+    commit_obj = load_commit(commit_id)
+    return commit_obj.blobs
+
+
 # def _updateHead(branch_name: str) -> None:
 #     """Truncates the HEAD file with the name of a branch."""
 #     HEAD.write_text(branch_name)
