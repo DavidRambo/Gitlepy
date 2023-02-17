@@ -2,8 +2,10 @@
 Represents a Gitlepy repository's commit object.
 """
 from datetime import datetime
-
+from typing import Dict
 from typing import Optional
+
+from gitlepy import repository as repo
 
 
 class Commit:
@@ -29,9 +31,22 @@ class Commit:
         if parent_one == "":
             self.parent_one = None  # initial commit has no parent
             self.timestamp = datetime.fromtimestamp(0)  # common timestamp
+            self.blobs: Dict[str, str] = {}
         else:
             self.parent_one = parent_one
             self.timestamp = datetime.now()
+
+            # Begin with parent commit's blobs.
+            self.blobs = repo.get_blobs(parent_one)
+
+            # Record files staged to be added.
+            index = repo.load_index()
+            self.blobs.update(index.additions)
+
+            # Remove files staged for remaval.
+            for key in index.removals:
+                del self.blobs[key]
+
         self.message = message
         self.commit_id = str(hash(self.message + str(self.timestamp)))
 
