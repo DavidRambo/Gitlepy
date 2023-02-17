@@ -36,8 +36,20 @@ def test_main_init_new_repo(runner):
         test_index: Index = pickle.load(file)
         assert repr(test_index) == "Index"
 
+    # Get name of commit object file. There should be only one.
+    all_commits = list(repo.COMMITS_DIR.iterdir())
+    commit_file = all_commits[0]
+    # Open it and unpickle it.
+    with open(commit_file, "rb") as file:
+        test_commit: Commit = pickle.load(file)
+        assert repr(test_commit) == "Commit"
+        assert test_commit.message == "Initial commit."
+
     main_branch = Path(repo.BRANCHES / "main")
     assert main_branch.exists()
+    # Ensure main branch references initial commit.
+    with open(main_branch, "r") as file:
+        assert file.readline() == test_commit.commit_id
 
     assert repo.HEAD.exists()
     assert repo.HEAD.read_text() == "main"
@@ -54,26 +66,3 @@ def test_main_init_already_exists(runner):
     result = runner.invoke(main, ["init"])
     assert result.exit_code == 0
     assert result.output == "Gitlepy repository already exists.\n"
-
-
-def test_index_exists(runner):
-    """Ensures that the Index exists and is an instance of the Index class."""
-    runner.invoke(main, ["init"])
-    assert repo.INDEX.exists()
-    with open(repo.INDEX, "rb") as file:
-        test_index: Index = pickle.load(file)
-        assert repr(test_index) == "Index"
-
-
-def test_initial_commit(runner):
-    """Ensures that the initial commit was created correctly."""
-    runner.invoke(main, ["init"])
-    assert repo.COMMITS_DIR.exists()
-    # Get name of commit object file. There should be only one.
-    all_commits = list(repo.COMMITS_DIR.iterdir())
-    commit_file = all_commits[0]
-    # Open it and unpickle it.
-    with open(commit_file, "rb") as file:
-        test_commit: Commit = pickle.load(file)
-        assert repr(test_commit) == "Commit"
-        assert test_commit.message == "Initial commit."
