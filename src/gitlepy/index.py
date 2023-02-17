@@ -1,5 +1,5 @@
 """src/gitlepy/index.py
-Handles a Gitlepy repository's staging area.
+Represents a Gitlepy repository's staging area.
 """
 from typing import Dict
 from typing import Set
@@ -36,13 +36,17 @@ class Index:
         """Provides access to the names of files staged for removal."""
         return self.removals
 
-    def stage(self, filename: str, blobID: str) -> None:
+    def stage(self, filename: str, blob_id: str) -> None:
         """Stages the file with the given filename for addition.
         If the file was already staged, then it updates its corresponding blob.
 
         Args:
             filename (str): Name of the file being staged.
-            blobID (str): Name of the blob file that stores the tracked
-            contents of the named file.
+            blob_id (str): Name of the blob file that stores the tracked contents
+                of the named file.
         """
-        self.additions[filename] = blobID
+        self.additions[filename] = blob_id
+
+    def unstage(self, filename: str) -> None:
+        """Removes the specified file from the staging area."""
+        pass
