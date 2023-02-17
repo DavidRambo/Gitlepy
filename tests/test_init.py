@@ -38,6 +38,8 @@ def test_main_init_new_repo(runner):
 
     # Get name of commit object file. There should be only one.
     all_commits = list(repo.COMMITS_DIR.iterdir())
+    if len(all_commits) > 1:
+        raise Error("There should only be one commit object saved.")
     commit_file = all_commits[0]
     # Open it and unpickle it.
     with open(commit_file, "rb") as file:
@@ -48,8 +50,9 @@ def test_main_init_new_repo(runner):
     main_branch = Path(repo.BRANCHES / "main")
     assert main_branch.exists()
     # Ensure main branch references initial commit.
-    with open(main_branch, "r") as file:
-        assert file.readline() == test_commit.commit_id
+    # with open(main_branch, "r") as file:
+    #     assert file.readline() == test_commit.commit_id
+    assert main_branch.read_text() == test_commit.commit_id
 
     assert repo.HEAD.exists()
     assert repo.HEAD.read_text() == "main"
