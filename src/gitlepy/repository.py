@@ -5,6 +5,7 @@ from pathlib import Path
 import pickle
 
 from gitlepy import index
+from gitlepy.commit import Commit
 
 
 # filesystem constants
@@ -34,10 +35,15 @@ def init() -> None:
         pickle.dump(new_index, file)
 
     # Create initial commit.
+    initial_commit = Commit("", "Initial commit.")
+    init_commit_file = Path.joinpath(COMMITS_DIR, initial_commit.commit_id)
+    with open(init_commit_file, "wb") as file:
+        pickle.dump(initial_commit, file)
 
     # create a file representing the "main" branch
     branch = Path(BRANCHES / "main")
-    branch.touch()
+    with open(branch, "w") as file:
+        file.write(initial_commit.commit_id)
 
     # create HEAD file and set current branch to "main"
     HEAD.touch()
