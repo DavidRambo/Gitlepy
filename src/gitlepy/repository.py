@@ -3,6 +3,7 @@ Handles the logic for managing a Gitlepy repository.
 All commands from gitlepy.main are dispatched to various functions in this module."""
 from pathlib import Path
 import pickle
+import os
 
 from gitlepy.index import Index
 from gitlepy.commit import Commit
@@ -70,7 +71,7 @@ def add(filename: str) -> None:
     index = load_index()
 
     # Is it unchanged since most recent commit?
-    current_commit = load_commit(get_current_branch)
+    current_commit = load_commit(get_current_branch())
     if new_blob.id in current_commit.blobs.keys():
         with open(Path(BLOBS_DIR / new_blob.id), "rb") as file:
             commit_blob = pickle.load(file)
@@ -81,7 +82,7 @@ def add(filename: str) -> None:
     # Stage file with blob in the staging area.
     index.stage(filename, new_blob.id)
     # Save blob.
-    with open(Path(BLOBS_DIR / new_blob.id), "wb") as file:
+    with open(os.path.join(BLOBS_DIR, new_blob.id), "wb") as file:
         pickle.dump(new_blob, file)
 
 
@@ -92,7 +93,16 @@ def commit(message: str) -> None:
         message: Commit message.
     """
     # Get id of current commit -> this will be parent of new commit.
-    pass
+    new_commit = Commit(get_head_commit(), message)
+    with open(os.path.join(INDEX, new_commit.commit_id), "wb") as file:
+        pickle.dump(new_commit, file)
+
+    # Clear index
+    index = load_index()
+    index.additions.clear()
+    index.removals.clear()
+    with open(INDEX, "wb") as file:
+        pickle.dump(index, file)
 
 
 def get_current_branch() -> str:
@@ -100,11 +110,15 @@ def get_current_branch() -> str:
     return HEAD.read_text()
 
 
-def load_commit(branch_name: str) -> Commit:
+def get_head_commit() -> str:
+    """Returns the ID of the currrently checked out commit."""
+    return Path(BRANCHES / get_current_branch()).read_text()
+
+
+def load_commit(commit_id: str) -> Commit:
     """Returns the head commit object of the given branch."""
-    head_commit_id = Path(BRANCHES / branch_name).read_text()
-    head_commit_path = Path(COMMITS_DIR / head_commit_id)
-    with open(head_commit_path, "rb") as file:
+    commit_path = Path(COMMITS_DIR / commit_id)
+    with open(commit_path, "rb") as file:
         return pickle.load(file)
 
 
