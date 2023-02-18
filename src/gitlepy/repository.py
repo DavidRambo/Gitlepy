@@ -4,6 +4,7 @@ All commands from gitlepy.main are dispatched to various functions in this modul
 from pathlib import Path
 import pickle
 import os
+from typing import Dict
 
 from gitlepy.index import Index
 from gitlepy.commit import Commit
@@ -66,12 +67,12 @@ def add(filename: str) -> None:
     # Create Path object
     filepath = Path(WORK_DIR / filename)
     # Read contents into new blob
-    new_blob = Blob(filepath.read_text())
+    new_blob = Blob(filepath)
     # Load the staging area
     index = load_index()
 
     # Is it unchanged since most recent commit?
-    current_commit = load_commit(get_current_branch())
+    current_commit = load_commit(get_head_commit_id())
     if new_blob.id in current_commit.blobs.keys():
         with open(Path(BLOBS_DIR / new_blob.id), "rb") as file:
             commit_blob = pickle.load(file)
@@ -80,6 +81,8 @@ def add(filename: str) -> None:
             index.unstage(filename)
 
     # Stage file with blob in the staging area.
+    print(f">>> {filename=}")
+    print(f">>> {new_blob.id=}")
     index.stage(filename, new_blob.id)
     # Save blob.
     with open(os.path.join(BLOBS_DIR, new_blob.id), "wb") as file:
@@ -93,8 +96,8 @@ def commit(message: str) -> None:
         message: Commit message.
     """
     # Get id of current commit -> this will be parent of new commit.
-    new_commit = Commit(get_head_commit(), message)
-    with open(os.path.join(INDEX, new_commit.commit_id), "wb") as file:
+    new_commit = Commit(get_head_commit_id(), message)
+    with open(os.path.join(COMMITS_DIR, new_commit.commit_id), "wb") as file:
         pickle.dump(new_commit, file)
 
     # Clear index
@@ -110,7 +113,7 @@ def get_current_branch() -> str:
     return HEAD.read_text()
 
 
-def get_head_commit() -> str:
+def get_head_commit_id() -> str:
     """Returns the ID of the currrently checked out commit."""
     return Path(BRANCHES / get_current_branch()).read_text()
 
