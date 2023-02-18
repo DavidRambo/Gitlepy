@@ -41,7 +41,7 @@ def test_add(runner, test_index):
     # gitlepy add a.txt
     runner.invoke(main, ["add", "a.txt"])
     adds = test_index.additions
-    assert len(adds) == 1
+    assert len(adds.keys()) == 1
     assert "a.txt" in adds.keys()
 
 
