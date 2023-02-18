@@ -1,6 +1,8 @@
 """src/gitlepy/blob.py
 Represents a blob object.
 """
+from hashlib import sha1
+from pathlib import Path
 
 
 class Blob:
@@ -11,7 +13,7 @@ class Blob:
     staged for addition.
     """
 
-    def __init__(self, file_contents: str):
+    def __init__(self, filepath: Path):
         """Creates a new blob object from the contents of a file.
 
         The name for the blob is the hash of the file's contents.
@@ -19,5 +21,5 @@ class Blob:
         Args:
             filename: Name of the file to be recorded as a blob.
         """
-        self.file_contents = file_contents
-        self.id = str(hash(file_contents))
+        self.file_contents = filepath.read_text()
+        self.id = sha1(bytes(filepath)).hexdigest()
