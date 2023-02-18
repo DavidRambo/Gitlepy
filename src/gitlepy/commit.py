@@ -2,6 +2,7 @@
 Represents a Gitlepy repository's commit object.
 """
 from datetime import datetime
+from hashlib import sha1
 from typing import Dict
 from typing import Optional
 
@@ -48,7 +49,9 @@ class Commit:
                 del self.blobs[key]
 
         self.message = message
-        self.commit_id = str(hash(self.message + str(self.timestamp)))
+        self.commit_id = sha1(
+            (self.message + str(self.timestamp)).encode("utf-8")
+        ).hexdigest()
 
     def __repr__(self):
         return f"{type(self).__name__}"
