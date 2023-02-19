@@ -12,7 +12,7 @@ from gitlepy.blob import Blob
 
 
 # filesystem constants
-WORK_DIR = Path.cwd()
+WORK_DIR = Path(os.environ["PWD"])
 GITLEPY_DIR = Path(WORK_DIR / ".gitlepy")
 BLOBS_DIR = Path(GITLEPY_DIR / "blobs")
 COMMITS_DIR = Path(GITLEPY_DIR / "commits")
@@ -84,6 +84,8 @@ def add(filename: str) -> None:
     print(f">>> {filename=}")
     print(f">>> {new_blob.id=}")
     index.stage(filename, new_blob.id)
+    for key in index.additions.keys():
+        print(f"{key=}")
     # Save blob.
     with open(os.path.join(BLOBS_DIR, new_blob.id), "wb") as file:
         pickle.dump(new_blob, file)
@@ -95,13 +97,18 @@ def commit(message: str) -> None:
     Args:
         message: Commit message.
     """
+    # Check for changes staged for commit.
+    index = load_index()
+    if not index.additions and not index.removals:
+        print("No changes staged for commit.")
+        return
+
     # Get id of current commit -> this will be parent of new commit.
     new_commit = Commit(get_head_commit_id(), message)
     with open(os.path.join(COMMITS_DIR, new_commit.commit_id), "wb") as file:
         pickle.dump(new_commit, file)
 
     # Clear index
-    index = load_index()
     index.additions.clear()
     index.removals.clear()
     with open(INDEX, "wb") as file:
