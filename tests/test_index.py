@@ -1,4 +1,4 @@
-# src/gitlepy/index.py
+# tests/test_index.py
 """Tests the Index class."""
 from pathlib import Path
 import pickle
@@ -35,7 +35,7 @@ def test_add(runner, test_index):
         test_index (Index): The Gitlepy repository's Index object.
     """
     # Create a new file and write some text to it.
-    file_a = Path(Path.cwd() / "a.txt")
+    file_a = Path(repo.WORK_DIR / "a.txt")
     file_a.touch()
     file_a.write_text("hello")
     # gitlepy add a.txt
@@ -50,3 +50,10 @@ def test_add_no_file(runner, test_index):
     result = runner.invoke(main, ["add", "nofile"])
     assert result.exit_code == 1
     assert result.output == "nofile does not exist.\n"
+
+
+def test_commit_no_changes(runner, test_index):
+    """Tests that a commit with nothing staged fails."""
+    result = runner.invoke(main, ["commit", "no changes"])
+    assert result.exit_code == 0
+    assert result.output == "No changes staged for commit.\n"
