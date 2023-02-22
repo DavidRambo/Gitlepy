@@ -43,8 +43,8 @@ def test_main_init_new_repo(runner):
 
     # Get name of commit object file. There should be only one.
     all_commits = list(Path(test_path / "commits").iterdir())
-    if len(all_commits) > 1:
-        raise Error("There should only be one commit object saved.")
+    if len(all_commits) != 1:
+        raise Error("There should be one commit object saved.")
     commit_file = all_commits[0]
     # Open it and unpickle it.
     with open(commit_file, "rb") as file:
