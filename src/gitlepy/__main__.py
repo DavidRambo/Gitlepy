@@ -4,7 +4,8 @@ from pathlib import Path
 import pickle
 import os.path
 import sys
-from typing import Dict
+
+# from typing import Dict
 
 import click
 
@@ -64,15 +65,12 @@ def init(repo) -> None:
         pickle.dump(new_index, file)
 
     # Create initial commit.
-    initial_commit = Commit("", "Initial commit.", {}, repo.index)
-    init_commit_file = Path.joinpath(repo.commits_dir, initial_commit.commit_id)
-    with open(init_commit_file, "wb") as file:
-        pickle.dump(initial_commit, file)
+    init_commit_id = repo.new_commit("", "Initial commit.")
 
     # create a file representing the "main" branch
     branch = Path(repo.branches_dir / "main")
     with open(branch, "w") as file:
-        file.write(initial_commit.commit_id)
+        file.write(init_commit_id)
 
     # create HEAD file and set current branch to "main"
     repo.head.touch()
@@ -87,11 +85,11 @@ def init(repo) -> None:
 def add(repo, filename: str) -> None:
     """Add a file to the staging area."""
     # Validate file.
-    if not os.path.isfile(os.path.join(repository.WORK_DIR, filename)):
+    if not os.path.isfile(os.path.join(repo.work_dir, filename)):
         click.echo(f"{filename} does not exist.")
         sys.exit(1)
     # Call repository method to stage the file.
-    repository.add(filename)
+    repo.add(filename)
     return
 
 
@@ -100,7 +98,7 @@ def add(repo, filename: str) -> None:
 @pass_repo
 def commit(repo, message: str) -> None:
     """Commit contents in staging area to Gitlepy repository."""
-    repository.commit(message)
+    repo.new_commit(repo.head_commit_id(), message)
 
 
 if __name__ == "__main__":
