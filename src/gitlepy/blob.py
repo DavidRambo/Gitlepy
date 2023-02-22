@@ -17,9 +17,20 @@ class Blob:
         """Creates a new blob object from the contents of a file.
 
         The name for the blob is the hash of the file's contents.
+        See the following two SO posts for info on chunking a file for
+        space-efficient hashing: https://stackoverflow.com/a/22058673
+        and https://stackoverflow.com/a/44873382
 
         Args:
             filename: Name of the file to be recorded as a blob.
         """
         self.file_contents = filepath.read_text()
-        self.id = sha1(bytes(filepath)).hexdigest()
+
+        self.sha = sha1()
+        BUF_SIZE: int = 64 * 1024  # 65_536
+        mv = memoryview(bytearray(BUF_SIZE))
+        with open(filepath, "rb", buffering=0) as f:
+            while chunk := f.readinto(mv):
+                self.sha.update(mv[:chunk])
+
+        self.id = self.sha.hexdigest()
