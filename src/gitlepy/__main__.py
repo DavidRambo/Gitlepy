@@ -1,34 +1,16 @@
-# gitletpy/main.py
+# gitletpy/__main__.py
 """Handles command-line arguments and dispatches to appropriate command."""
-from dataclasses import dataclass
 from pathlib import Path
 import pickle
 import os.path
 import sys
-from typing import Optional
+from typing import Dict
 
 import click
 
-from gitlepy import repository
 from gitlepy.commit import Commit
 from gitlepy.index import Index
-
-
-class Repo:
-    """A Gitlepy repository object.
-
-    This dataclass provides the variables that represent the repository's
-    directory structure within the file system.
-    """
-
-    def __init__(self, repo_path: Path):
-        self.work_dir: Path = repo_path
-        self.gitlepy_dir: Path = Path(self.work_dir / ".gitlepy")
-        self.blobs_dir: Path = Path(self.gitlepy_dir / "blobs")
-        self.commits_dir: Path = Path(self.gitlepy_dir, "commits")
-        self.branches_dir: Path = Path(self.gitlepy_dir, "refs")
-        self.index: Path = Path(self.gitlepy_dir, "index")
-        self.head: Path = Path(self.gitlepy_dir, "HEAD")
+from gitlepy.repository import Repo
 
 
 pass_repo = click.make_pass_decorator(Repo)
@@ -47,10 +29,7 @@ def main(ctx, repo_home: str):
         click.echo("Incorrect operands.")
         return
 
-    if repo_home:
-        repo_path = Path(os.path.abspath(repo_home))
-    else:
-        repo_path = Path(os.path.abspath("."))
+    repo_path = Path(os.path.abspath(repo_home or "."))
 
     ctx.obj = Repo(repo_path)
     # ctx.obj.work_dir = Path(repo_path)
@@ -80,12 +59,12 @@ def init(repo) -> None:
 
     # create staging area
     repo.index.touch()
-    new_index = Index()
+    new_index = Index(repo.index)
     with open(repo.index, "wb") as file:
         pickle.dump(new_index, file)
 
     # Create initial commit.
-    initial_commit = Commit("", "Initial commit.")
+    initial_commit = Commit("", "Initial commit.", {}, repo.index)
     init_commit_file = Path.joinpath(repo.commits_dir, initial_commit.commit_id)
     with open(init_commit_file, "wb") as file:
         pickle.dump(initial_commit, file)

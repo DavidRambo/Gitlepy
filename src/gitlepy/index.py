@@ -1,6 +1,8 @@
 """src/gitlepy/index.py
 Represents a Gitlepy repository's staging area.
 """
+from pathlib import Path
+import pickle
 from typing import Dict
 from typing import Set
 
@@ -14,7 +16,10 @@ class Index:
     """
 
     def __init__(
-        self, additions: Dict[str, str] = {}, removals: Set[str] = set()
+        self,
+        index_path: Path,
+        additions: Dict[str, str] = {},
+        removals: Set[str] = set(),
     ) -> None:
         """Initializes the staging area by creating an empty dict.
 
@@ -22,6 +27,7 @@ class Index:
             additions (dict[str, str]): Maps filenames to their blobs.
             removals (set): Set of the names of files staged for removal.
         """
+        self.path = index_path
         self.additions = additions
         self.removals = removals
 
@@ -50,3 +56,8 @@ class Index:
     def unstage(self, filename: str) -> None:
         """Removes the specified file from the staging area."""
         pass
+
+    def save(self) -> None:
+        """Writes the index to the repository."""
+        with open(self.path, "wb") as file:
+            pickle.dump(self, file)

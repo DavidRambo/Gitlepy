@@ -3,10 +3,12 @@ Represents a Gitlepy repository's commit object.
 """
 from datetime import datetime
 from hashlib import sha1
+from pathlib import Path
+import pickle
 from typing import Dict
 from typing import Optional
 
-from gitlepy import repository as repo
+from gitlepy.index import Index
 
 
 class Commit:
@@ -20,6 +22,8 @@ class Commit:
         self,
         parent_one: str,
         message: str,
+        starting_blobs: Dict[str, str],
+        index_path: Path,
         parent_two: Optional[str] = None,
     ) -> None:
         """Creates a commit object.
@@ -32,21 +36,26 @@ class Commit:
         if parent_one == "":
             self.parent_one = None  # initial commit has no parent
             self.timestamp = datetime.fromtimestamp(0)  # common timestamp
-            self.blobs: Dict[str, str] = {}
+            self.blobs = starting_blobs  # empty dict
         else:
             self.parent_one = parent_one
             self.timestamp = datetime.now()
 
             # Begin with parent commit's blobs.
-            self.blobs = repo.get_blobs(parent_one)
+            self.blobs = starting_blobs
 
-            # Record files staged to be added.
-            index = repo.load_index()
+            # Record files staged for addition.
+            with open(index_path, "rb") as file:
+                index = pickle.load(file)
+
             self.blobs.update(index.additions)
 
             # Remove files staged for remaval.
             for key in index.removals:
                 del self.blobs[key]
+
+            # Save index to file system.
+            index.save()
 
         self.message = message
         self.commit_id = sha1(
