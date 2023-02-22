@@ -34,14 +34,6 @@ class Index:
     def __repr__(self):
         return f"{type(self).__name__}"
 
-    # def getAdditions(self) -> Dict[str, str]:
-    #     """Provides access to the mapping of files staged for addition."""
-    #     return self.additions
-
-    # def getRemovals(self) -> Set[str]:
-    #     """Provides access to the names of files staged for removal."""
-    #     return self.removals
-
     def stage(self, filename: str, blob_id: str) -> None:
         """Stages the file with the given filename for addition.
         If the file was already staged, then it updates its corresponding blob.
@@ -55,9 +47,26 @@ class Index:
 
     def unstage(self, filename: str) -> None:
         """Removes the specified file from the staging area."""
-        pass
+        del self.additions[filename]
+
+    def clear(self) -> None:
+        """Clears the staging area."""
+        self.additions.clear()
+        self.removals.clear()
 
     def save(self) -> None:
         """Writes the index to the repository."""
         with open(self.path, "wb") as file:
             pickle.dump(self, file)
+
+    def is_staged(self, filename: str) -> bool:
+        """Determines whether the given file is staged for addition."""
+        return filename in self.additions.keys()
+
+    # def getAdditions(self) -> Dict[str, str]:
+    #     """Provides access to the mapping of files staged for addition."""
+    #     return self.additions
+
+    # def getRemovals(self) -> Set[str]:
+    #     """Provides access to the names of files staged for removal."""
+    #     return self.removals
