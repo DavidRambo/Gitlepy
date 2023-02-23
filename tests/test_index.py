@@ -4,28 +4,10 @@ import os
 from pathlib import Path
 import pickle
 
-from click.testing import CliRunner
 import pytest
 
 from gitlepy.__main__ import main
 from gitlepy.index import Index
-
-
-@pytest.fixture
-def runner():
-    return CliRunner()
-
-
-@pytest.fixture
-def setup_repo(runner):
-    runner.invoke(main, ["init"])
-    repo_paths = {}
-    repo_paths["test_path"] = Path(Path(os.path.abspath(".")) / ".gitlepy")
-    repo_paths["index_path"] = Path(repo_paths["test_path"] / "index")
-    repo_paths["blobs_path"] = Path(repo_paths["test_path"] / "blobs")
-    repo_paths["commits_path"] = Path(repo_paths["test_path"] / "commits")
-    repo_paths["branches"] = Path(repo_paths["test_path"] / "refs")
-    return repo_paths
 
 
 def test_index_file(runner, setup_repo):

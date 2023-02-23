@@ -17,11 +17,6 @@ from gitlepy.index import Index
 from gitlepy.__main__ import main
 
 
-@pytest.fixture
-def runner():
-    return CliRunner()
-
-
 def test_main_init_new_repo(runner):
     """Creates a new repository successfully."""
     # with runner.isolated_filesystem(tmp_path):

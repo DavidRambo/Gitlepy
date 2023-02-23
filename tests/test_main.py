@@ -6,11 +6,6 @@ import pytest
 from gitlepy.__main__ import main
 
 
-@pytest.fixture
-def runner():
-    return CliRunner()
-
-
 @pytest.mark.parametrize(
     ("cmd", "expected"),
     (
