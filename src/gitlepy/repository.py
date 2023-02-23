@@ -1,10 +1,9 @@
 """Repository module for Gitlepy.
 Handles the logic for managing a Gitlepy repository.
 All commands from gitlepy.main are dispatched to various functions in this module."""
-from datetime import datetime
 from pathlib import Path
 import pickle
-import os
+import sys
 from typing import Dict
 
 from gitlepy.index import Index
@@ -94,12 +93,16 @@ class Repo:
                 pickle.dump(c, f)
             return c.commit_id
 
+        # Load the index and ensure files are staged for commit.
+        index = self.load_index()
+        if not index.additions and not index.removals:
+            print("No changes staged for commit.")
+            sys.exit(0)
+
         # Begin with parent commit's blobs
         c.blobs = self.get_blobs(parent)
 
         # Record files staged for addition.
-        index = self.load_index()
-
         c.blobs.update(index.additions)
 
         # Remove files staged for remaval.
@@ -145,5 +148,6 @@ class Repo:
         index.save()
 
         # Save the blob.
-        with open(filepath, "wb") as f:
+        blob_path = Path(self.blobs_dir / new_blob.id)
+        with open(blob_path, "wb") as f:
             pickle.dump(new_blob, f)
