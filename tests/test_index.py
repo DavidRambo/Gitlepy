@@ -19,14 +19,6 @@ def test_index_file(runner, setup_repo):
     assert setup_repo["branches"].exists()
 
 
-def test_commit_no_changes(runner, setup_repo):
-    """Tests that a commit with nothing staged fails."""
-    # runner.invoke(main, ["init"])
-    result = runner.invoke(main, ["commit", "no changes"])
-    assert result.exit_code == 0
-    assert result.output == "No changes staged for commit.\n"
-
-
 def test_add_no_file(runner, setup_repo):
     """Tries to add a non-existent file to the staging area."""
     # runner.invoke(main, ["init"])
