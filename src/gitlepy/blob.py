@@ -26,11 +26,11 @@ class Blob:
         """
         self.file_contents = filepath.read_text()
 
-        self.sha = sha1()
+        sha = sha1()
         BUF_SIZE: int = 64 * 1024  # 65_536
         mv = memoryview(bytearray(BUF_SIZE))
         with open(filepath, "rb", buffering=0) as f:
             while chunk := f.readinto(mv):
-                self.sha.update(mv[:chunk])
+                sha.update(mv[:chunk])
 
-        self.id = self.sha.hexdigest()
+        self.id = sha.hexdigest()
