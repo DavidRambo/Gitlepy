@@ -39,7 +39,7 @@ def test_successful_commit(runner, setup_repo):
     assert result.output == ""
 
 
-def test_commit_hash():
+def test_head_update():
     """This test circumvents the click interface in __main__ in order
     to test the Repo class's own new_commit method.
     """
@@ -58,14 +58,36 @@ def test_commit_hash():
 
     # Create initial commit.
     init_commit_id = repo.new_commit("", "Initial commit.")
-    assert len(init_commit_id) == "026a95e8b538e97b46567dfb94b61730dc9bc004"
+    assert init_commit_id == "026a95e8b538e97b46567dfb94b61730dc9bc004"
+
+    # create a file representing the "main" branch
+    branch = Path(repo.branches_dir / "main")
+    with open(branch, "w") as file:
+        file.write(init_commit_id)
+
+    # create HEAD file and set current branch to "main"
+    repo.head.touch()
+    repo.head.write_text("main")
+
+    file_a = Path("a.txt")
+    file_a.touch()
+    file_a.write_text("hi")
+    repo.add("a.txt")
+
+    new_head_id = repo.new_commit(repo.head_commit_id(), "hi > a.txt")
+    assert new_head_id != init_commit_id
+    Path(repo.branches_dir / repo.current_branch()).write_text(new_head_id)
+    current_head_id = Path(repo.branches_dir / repo.current_branch()).read_text()
+    assert current_head_id == new_head_id
 
 
-def test_head_update(runner, setup_repo):
+def test_log(runner, setup_repo):
     """Checks that the HEAD file's contents are updated to reference
     the new commit.
     """
     init_id = Path(setup_repo["branches"] / "main").read_text()
+    result = runner.invoke(main, ["log"])
+    assert result.output == ""
     file_a = Path("a.txt")
     file_a.touch()
     file_a.write_text("hello")
@@ -73,14 +95,23 @@ def test_head_update(runner, setup_repo):
     runner.invoke(main, ["commit", "hello > a.txt"])
     first_commit_id = Path(setup_repo["branches"] / "main").read_text()
     assert init_id != first_commit_id
-
-
-# def test_log(runner, setup_repo):
-#     file_a = Path("a.txt")
-#     file_a.touch()
-#     file_a.write_text("hello")
-#     runner.invoke(main, ["add", "a.txt"])
-#     runner.invoke(main, ["commit", "hello > a.txt"])
-#     file_a.write_text("hello, world")
-#     runner.invoke(main, ["add", "a.txt"])
-#     runner.invoke(main, ["commit", "hello, world > a.txt"])
+    file_a.write_text("hello, world")
+    runner.invoke(main, ["add", "a.txt"])
+    runner.invoke(main, ["commit", "hello, world > a.txt"])
+    second_commit_id = Path(setup_repo["branches"] / "main").read_text()
+    assert second_commit_id != first_commit_id
+    result = runner.invoke(main, ["log"])
+    assert (
+        result.output == f"===\n"
+        f"commit {second_commit_id}\n"
+        f"Date: \n"
+        f"hello > a.txt\n"
+        f""
+        f"commit {first_commit_id}\n"
+        f"Date: \n"
+        f"hello, world > a.txt\n"
+        f""
+        f"commit {init_id}\n"
+        f"Date: Wed Dec 31 16:00:00 1969\n"
+        f"Initial commit.\n\n"
+    )
