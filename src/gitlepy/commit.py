@@ -36,9 +36,9 @@ class Commit:
         self.blobs: Dict[str, str] = {}
 
         if self.parent_one == "":  # initial commit
-            self.timestamp = datetime.fromtimestamp(0)
+            self.timestamp = datetime.fromtimestamp(0).ctime()
         else:
-            self.timestamp = datetime.now()
+            self.timestamp = datetime.now().ctime()
 
         self.commit_id = sha1(
             (self.message + str(self.timestamp)).encode("utf-8")
@@ -46,3 +46,25 @@ class Commit:
 
     def __repr__(self):
         return f"{type(self).__name__}"
+
+    def __str__(self):
+        """Formats the commit's information for the log command.
+
+        ===
+        commit [sha1 hash]
+        Date: [timestamp]
+        [commit message]
+        [newline]
+        """
+        output = (
+            "===\n"
+            + "commit "
+            + self.commit_id
+            + "\n"
+            + "Date: "
+            + self.timestamp
+            + "\n"
+            + self.message
+            + "\n"
+        )
+        return output
