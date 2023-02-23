@@ -98,7 +98,8 @@ def add(repo, filename: str) -> None:
 @pass_repo
 def commit(repo, message: str) -> None:
     """Commit contents in staging area to Gitlepy repository."""
-    repo.new_commit(repo.head_commit_id(), message)
+    new_head_id = repo.new_commit(repo.head_commit_id(), message)
+    Path(repo.branches_dir / repo.current_branch()).write_text(new_head_id)
 
 
 if __name__ == "__main__":
