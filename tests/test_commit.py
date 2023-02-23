@@ -58,7 +58,7 @@ def test_head_update():
 
     # Create initial commit.
     init_commit_id = repo.new_commit("", "Initial commit.")
-    assert init_commit_id == "026a95e8b538e97b46567dfb94b61730dc9bc004"
+    assert init_commit_id == "7c5180a06061453bd4559ea0754fa4f3581d1c91"
 
     # create a file representing the "main" branch
     branch = Path(repo.branches_dir / "main")
@@ -87,7 +87,12 @@ def test_log(runner, setup_repo):
     """
     init_id = Path(setup_repo["branches"] / "main").read_text()
     result = runner.invoke(main, ["log"])
-    assert result.output == ""
+    assert (
+        result.output == f"===\n"
+        f"commit {init_id}\n"
+        f"Date: Wed Dec 31 16:00:00 1969\n"
+        f"Initial commit.\n\n"
+    )
     file_a = Path("a.txt")
     file_a.touch()
     file_a.write_text("hello")
@@ -100,18 +105,31 @@ def test_log(runner, setup_repo):
     runner.invoke(main, ["commit", "hello, world > a.txt"])
     second_commit_id = Path(setup_repo["branches"] / "main").read_text()
     assert second_commit_id != first_commit_id
+    # Get the timestamps from those two commits
+    time_2 = get_timestamp(Path(setup_repo["commits_path"] / second_commit_id))
+    time_1 = get_timestamp(Path(setup_repo["commits_path"] / first_commit_id))
+    # Call the log
     result = runner.invoke(main, ["log"])
     assert (
         result.output == f"===\n"
         f"commit {second_commit_id}\n"
-        f"Date: \n"
-        f"hello > a.txt\n"
-        f""
-        f"commit {first_commit_id}\n"
-        f"Date: \n"
+        f"Date: {time_2}\n"
         f"hello, world > a.txt\n"
-        f""
+        f"\n"
+        f"===\n"
+        f"commit {first_commit_id}\n"
+        f"Date: {time_1}\n"
+        f"hello > a.txt\n"
+        f"\n"
+        f"===\n"
         f"commit {init_id}\n"
         f"Date: Wed Dec 31 16:00:00 1969\n"
         f"Initial commit.\n\n"
     )
+
+
+def get_timestamp(c_path: Path) -> str:
+    """Retrieves the timestamp of the Commit object with the given id."""
+    with open(c_path, "rb") as f:
+        c = pickle.load(f)
+    return c.timestamp
