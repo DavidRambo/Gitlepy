@@ -102,5 +102,16 @@ def commit(repo, message: str) -> None:
     Path(repo.branches_dir / repo.current_branch()).write_text(new_head_id)
 
 
+@main.command()
+@pass_repo
+def log(repo) -> None:
+    """Prints a log of commits beginning from the HEAD."""
+    commit_id = repo.head_commit_id()
+    while commit_id is not None:
+        commit = repo.load_commit(commit_id)
+        print(commit)
+        commit_id = commit.parent_one
+
+
 if __name__ == "__main__":
     main()
