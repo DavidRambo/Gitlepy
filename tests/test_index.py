@@ -59,19 +59,23 @@ def test_add(runner, setup_repo):
 
     Args:
         runner (CliRunner): This is the click.testing object used to invoke
-            commands.
-        test_index (Index): The Gitlepy repository's Index object.
+            commands. (See above for the runner fixture.)
+        setup_repo (dict): A dict containing Path objects to the repository's
+            file structure. (See above for the setup_repo fixture.)
     """
     # runner.invoke(main, ["init"])
     # Create a new file and write some text to it.
-    file_a = Path(setup_repo["test_path"] / "a.txt")
+    file_a = Path("a.txt")
     file_a.touch()
     file_a.write_text("hello")
     assert file_a.exists()
     # gitlepy add a.txt
-    runner.invoke(main, ["add", "a.txt"])
+    result = runner.invoke(main, ["add", "a.txt"])
+    assert result.output == ""
+
     with open(setup_repo["index_path"], "rb") as file:
         test_index: Index = pickle.load(file)
-        assert repr(test_index) == "Index"
-        assert len(test_index.additions) == 1
-        assert "a.txt" in test_index.additions.keys()
+
+    assert repr(test_index) == "Index"
+    assert len(test_index.additions) == 1
+    assert "a.txt" in test_index.additions.keys()
