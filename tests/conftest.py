@@ -36,4 +36,5 @@ def setup_repo(runner):
     repo_paths["blobs_path"] = Path(repo_paths["test_path"] / "blobs")
     repo_paths["commits_path"] = Path(repo_paths["test_path"] / "commits")
     repo_paths["branches"] = Path(repo_paths["test_path"] / "refs")
+    repo_paths["head"] = Path(repo_paths["test_path"] / "HEAD")
     return repo_paths
