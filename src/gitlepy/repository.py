@@ -49,6 +49,18 @@ class Repo:
         self.index: Path = Path(self.gitlepy_dir, "index")
         self.head: Path = Path(self.gitlepy_dir, "HEAD")
 
+    @property
+    def branches(self) -> list:
+        """Returns a list of branch names."""
+        assert (
+            self.branches_dir.exists()
+        ), "Error: Gitlepy's branches directory does not exist."
+        path_list = list(self.branches_dir.glob("*"))
+        result = []
+        for file in path_list:
+            result.append(file.name)
+        return result
+
     def current_branch(self) -> str:
         """Returns the name of the currently checked out branch."""
         return self.head.read_text()
