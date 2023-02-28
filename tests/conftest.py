@@ -31,7 +31,8 @@ def setup_repo(runner):
     """Initializes a Gitlepy repository."""
     runner.invoke(main, ["init"])
     repo_paths = {}
-    repo_paths["test_path"] = Path(Path(os.path.abspath(".")) / ".gitlepy")
+    repo_paths["work_path"] = Path(os.path.abspath("."))
+    repo_paths["test_path"] = Path(repo_paths["work_path"] / ".gitlepy")
     repo_paths["index_path"] = Path(repo_paths["test_path"] / "index")
     repo_paths["blobs_path"] = Path(repo_paths["test_path"] / "blobs")
     repo_paths["commits_path"] = Path(repo_paths["test_path"] / "commits")
