@@ -5,6 +5,7 @@ import pickle
 import pytest
 
 from gitlepy.__main__ import main
+from gitlepy import repository
 
 
 def test_branch_already_exists(runner, setup_repo):
@@ -19,6 +20,17 @@ def test_branch_file(runner, setup_repo):
     dev_path = Path(setup_repo["branches"] / "dev")
     assert dev_path.exists()
     assert result.output == ""
+
+
+def test_branches_list(runner, setup_repo):
+    """Creates a branch and then lists all branches."""
+    result = runner.invoke(main, ["branch", "dev"])  # create branch called dev
+    # Create instance of Repo class for testing.
+    r = repository.Repo(setup_repo["work_path"])
+    result = r.branches
+    assert len(result) == 2
+    assert "main" in result
+    assert "dev" in result
 
 
 def test_checkout_branch_does_not_exist(runner, setup_repo):
