@@ -113,5 +113,17 @@ def log(repo) -> None:
         commit_id = commit.parent_one
 
 
+@main.command()
+@click.argument("branchname")
+@pass_repo
+def branch(repo, branchname: str) -> None:
+    """Creates a branch with the given name."""
+    branch_path = Path(repo.branches_dir / branchname)
+    if branch_path.exists():
+        click.echo("A branch with that name already exists.")
+    else:
+        branch_path.touch()
+
+
 if __name__ == "__main__":
     main()
