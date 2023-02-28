@@ -1,6 +1,5 @@
 # tests/test_index.py
 """Tests the Index class."""
-import os
 from pathlib import Path
 import pickle
 
