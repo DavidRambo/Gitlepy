@@ -5,6 +5,7 @@ from pathlib import Path
 import pickle
 import sys
 from typing import Dict
+from typing import Optional
 
 from gitlepy.index import Index
 from gitlepy.commit import Commit
@@ -56,6 +57,18 @@ class Repo:
             self.branches_dir.exists()
         ), "Error: Gitlepy's branches directory does not exist."
         path_list = list(self.branches_dir.glob("*"))
+        result = []
+        for file in path_list:
+            result.append(file.name)
+        return result
+
+    @property
+    def commits(self) -> list:
+        """Returns a list of commit ids."""
+        assert (
+            self.commits_dir.exists()
+        ), "Error: Gitlepy's commits directory does not exist."
+        path_list = list(self.commits_dir.glob("*"))
         result = []
         for file in path_list:
             result.append(file.name)
@@ -163,3 +176,42 @@ class Repo:
         blob_path = Path(self.blobs_dir / new_blob.id)
         with open(blob_path, "wb") as f:
             pickle.dump(new_blob, f)
+
+    # TODO:
+    def checkout_file(self, filename: str, target: str = "") -> None:
+        if target == "":
+            # Checkout the file from HEAD.
+            # Validate file exists in HEAD commit.
+            head_commit = self.load_commit(self.head_commit_id())
+            if filename not in head_commit.blobs:
+                print(f"{filename} is not a valid file for the current HEAD.")
+                return
+        else:
+            # Parse target for valid branch or commit id.
+            # Is target in branches?
+            # If not, then is it a commit id?
+            print(f"{target} is neither a valid branch nor a valid commit.")
+            return
+
+        return
+
+    # TODO:
+    def checkout(self, target: str) -> None:
+        """Checks out the given branch or commit.
+
+        target: Either the name of a branch or the id for a commit.
+        """
+        return
+
+    def _parse_target(self, target: str) -> Optional[str]:
+        """Determines whether the <target> string is a valid branch name or
+        commit. Called by the checkout_file and checkout methods.
+        """
+        # if target in branches, then return "branch"
+        if target in self.branches:
+            return "branch"
+        # elif target in commit ids, then return "commit"
+        elif target in self.commits:
+            return "commit"
+        # else return None
+        return None
