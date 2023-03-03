@@ -16,6 +16,14 @@ class Commit:
     It records a snapshot of the working directory as a dict of blobs, which
     map filenames to their blob IDs. A blob ID is the name of a blob, which
     stores the contents of a file at the time it was staged.
+
+    Attributes:
+        parent_one (str): ID of the parent commit
+        parent_two (str): If it is a merge commit, ID of the second parent.
+        message (str): Commit message.
+        timestamp: datetime object representing the time of the commit.
+        commit_id (str): hexdigest() of the commit's SHA-1 hash.
+        blobs (dict): Dictionary in the form {"file name", "blob id"}.
     """
 
     def __init__(
