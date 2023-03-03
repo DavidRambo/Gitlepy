@@ -125,5 +125,42 @@ def branch(repo, branchname: str) -> None:
         branch_path.touch()
 
 
+@main.command()
+@click.argument("target", required=False)
+@click.option(
+    "-f",
+    "--file",
+    "filename",
+    required=False,
+    help="Specify the file to checkout.",
+)
+@pass_repo
+def checkout(repo, target, filename):
+    """Checkout a branch, commit, or file.
+
+    This command accepts five usages:\n
+        gitlepy checkout -f <file name> : checks out the given file from the HEAD commit\n
+        gitlepy checkout <branch name> : checks out the given branch\n
+        gitlepy checkout <branch name> -f <file name> : checks out the given file from
+            the given branch\n
+        gitlepy checkout <commit id> : checks out the given commit\n
+        gitlepy checkout <commit id> -f <file name> : checks out the given file from
+            the given commit\n
+    """
+    # Parse arguments
+    if target is None and filename:
+        click.echo(f"Checking out {filename} from current HEAD.")
+        repo.checkout_file(filename)
+        return
+    elif target and filename:
+        click.echo(f"Checking out {filename} from {target}.")
+        repo.checkout_file(filename, target)
+        return
+    else:
+        click.echo(f"Checking out {target}.")
+        repo.checkout(target)
+        return
+
+
 if __name__ == "__main__":
     main()
