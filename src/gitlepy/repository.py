@@ -5,6 +5,7 @@ from pathlib import Path
 import pickle
 import sys
 from typing import Dict
+from typing import List
 from typing import Optional
 
 from gitlepy.index import Index
@@ -30,15 +31,23 @@ class Repo:
         branches_dir: Where branch names and their head commits are stored:
             .gitlepy/refs
         index: The file that represents the staging area: .gitlepy/index
-        head: The file that stores the currently checked out commit:
+        head: The file that references the currently checked out branch:
             .gitlepy/HEAD
+        branches (list) : List of branch names.
+        commits (list) : List of commit IDs.
 
     Methods:
         current_branch
         head_commit_id
         load_commit
         load_index
+        load_blob
         get_blobs
+        new_commit
+        add
+        checkout_file
+        checkout
+        reset
     """
 
     def __init__(self, repo_path: Path):
@@ -51,7 +60,7 @@ class Repo:
         self.head: Path = Path(self.gitlepy_dir, "HEAD")
 
     @property
-    def branches(self) -> list:
+    def branches(self) -> List[str]:
         """Returns a list of branch names."""
         assert (
             self.branches_dir.exists()
@@ -63,7 +72,7 @@ class Repo:
         return result
 
     @property
-    def commits(self) -> list:
+    def commits(self) -> List[str]:
         """Returns a list of commit ids."""
         assert (
             self.commits_dir.exists()
@@ -82,6 +91,13 @@ class Repo:
         """Returns the ID of the currrently checked out commit."""
         return Path(self.branches_dir / self.current_branch()).read_text()
 
+    def get_branch_head(self, branch: str) -> str:
+        """Returns the commit ID (the head) of the given branch."""
+        assert branch in self.branches, "Not a valid branch name."
+        # Define Path object for the branch reference file.
+        p = Path(self.branches_dir / branch)
+        return p.read_text()
+
     def load_commit(self, commit_id: str) -> Commit:
         """Returns the head commit object of the given branch."""
         commit_path = Path(self.commits_dir / commit_id)
@@ -91,6 +107,11 @@ class Repo:
     def load_index(self) -> Index:
         """Loads the staging area, i.e. the Index object."""
         with open(self.index, "rb") as file:
+            return pickle.load(file)
+
+    def load_blob(self, blob_id: str) -> Blob:
+        p = Path(self.blobs_dir / blob_id)
+        with open(p, "rb") as file:
             return pickle.load(file)
 
     def get_blobs(self, commit_id: str) -> Dict[str, str]:
@@ -177,41 +198,95 @@ class Repo:
         with open(blob_path, "wb") as f:
             pickle.dump(new_blob, f)
 
-    # TODO:
     def checkout_file(self, filename: str, target: str = "") -> None:
-        if target == "":
-            # Checkout the file from HEAD.
-            # Validate file exists in HEAD commit.
-            head_commit = self.load_commit(self.head_commit_id())
-            if filename not in head_commit.blobs:
-                print(f"{filename} is not a valid file for the current HEAD.")
-                return
+        """Checks out a file from some commit.
+
+        The default commit is the current HEAD, which is specified by a null
+        target.
+
+        Args:
+            filename : name of the file to be checked out
+            target : commit from which to check out the file
+        """
+        if target == "":  # Checkout the file from HEAD.
+            commit = self.load_commit(self.head_commit_id())
         else:
-            # Parse target for valid branch or commit id.
-            # Is target in branches?
-            # If not, then is it a commit id?
-            print(f"{target} is neither a valid branch nor a valid commit.")
-            return
+            commit_id = self._match_commit_id(target)
+            if not commit_id:
+                print(f"{target} is not a valid commit.")
+            else:
+                commit = self.load_commit(commit_id)
 
-        return
+        # Validate that file exists in HEAD commit.
+        if filename not in commit.blobs:
+            print(f"{filename} is not a valid file.")
+        else:  # Checkout the file
+            # Path for file in working directory
+            filepath = Path(self.work_dir / filename)
+            # Path for the blob
+            blob = self.load_blob(commit.blobs[filename])
+            filepath.write_text(blob.file_contents)
 
-    # TODO:
-    def checkout(self, target: str) -> None:
-        """Checks out the given branch or commit.
+    def checkout_branch(self, target: str) -> None:
+        """Checks out the given branch.
 
-        target: Either the name of a branch or the id for a commit.
+        target: Name of a branch.
         """
-        return
+        if target in self.branches:  # Validate target is a branch.
+            # Don't checkout current branch.
+            if target == self.current_branch():
+                print(f"Already on '{target}'")
+                return
 
-    def _parse_target(self, target: str) -> Optional[str]:
-        """Determines whether the <target> string is a valid branch name or
-        commit. Called by the checkout_file and checkout methods.
+            # Path object for branch rile
+            target_branch = Path(self.branches_dir / target)
+
+            # Load head commit for target branch.
+            blobs: dict = self.get_blobs(self.get_branch_head(target))
+
+            # Delete files untracked by target branch.
+            # First get all paths in working directory.
+            all_paths = list(self.work_dir.glob("*"))
+            # Remove hidden files and directories.
+            working_files = [
+                file.name for file in all_paths if not file.name.startswith(".")
+            ]
+            for filename in working_files:
+                if filename not in blobs:
+                    Path(self.work_dir / filename).unlink()
+
+            # Load file contents from blobs.
+            for filename in blobs:
+                file = Path(self.work_dir / filename)
+                blob = self.load_blob(blobs[filename])
+                file.write_text(blob.file_contents)
+            # Update HEAD to reference checked out branch.
+            self.head.write_text(target)
+
+            # clear the staging area
+            index = self.load_index()
+            index.clear()
+            index.save()
+        else:
+            print(f"{target} is not a valid branch name.")
+
+    def _match_commit_id(self, target: str) -> Optional[str]:
+        """Determines whether the `target` string is a valid commit.
+        If `target` < 40 characters, then it will treat it as an abbreviation
+        and try to find a matching commit.
         """
-        # if target in branches, then return "branch"
-        if target in self.branches:
-            return "branch"
-        # elif target in commit ids, then return "commit"
-        elif target in self.commits:
-            return "commit"
+        # if target in commit ids, then return "commit"
+        if target in self.commits:
+            return target
+        # else try to find a match for abbreviate commit id
+        elif len(target) < 40:
+            matches = []
+            for id in self.commits:
+                if id.startswith(target):
+                    matches.append(id)
+            if len(matches) > 1:
+                print("Ambiguous commit abbreviation.")
+            elif len(matches) == 1:
+                return matches[0]
         # else return None
         return None

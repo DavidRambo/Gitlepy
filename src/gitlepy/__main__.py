@@ -123,10 +123,12 @@ def branch(repo, branchname: str) -> None:
         click.echo("A branch with that name already exists.")
     else:
         branch_path.touch()
+        # Write current HEAD commit to new branch.
+        branch_path.write_text(repo.head_commit_id())
 
 
 @main.command()
-@click.argument("target", required=False)
+@click.argument("target", required=False, default="")
 @click.option(
     "-f",
     "--file",
@@ -136,30 +138,22 @@ def branch(repo, branchname: str) -> None:
 )
 @pass_repo
 def checkout(repo, target, filename):
-    """Checkout a branch, commit, or file.
+    """Checkout a branch or a file from a commit.
 
     This command accepts five usages:\n
         gitlepy checkout -f <file name> : checks out the given file from the HEAD commit\n
-        gitlepy checkout <branch name> : checks out the given branch\n
-        gitlepy checkout <branch name> -f <file name> : checks out the given file from
-            the given branch\n
-        gitlepy checkout <commit id> : checks out the given commit\n
         gitlepy checkout <commit id> -f <file name> : checks out the given file from
             the given commit\n
+        gitlepy checkout <branch name> : checks out the given branch\n
+            the given branch\n
     """
     # Parse arguments
-    if target is None and filename:
-        click.echo(f"Checking out {filename} from current HEAD.")
-        repo.checkout_file(filename)
-        return
-    elif target and filename:
-        click.echo(f"Checking out {filename} from {target}.")
+    if filename:
         repo.checkout_file(filename, target)
-        return
+    elif target:
+        repo.checkout_branch(target)
     else:
-        click.echo(f"Checking out {target}.")
-        repo.checkout(target)
-        return
+        click.echo("Incorrect operands.")
 
 
 if __name__ == "__main__":
