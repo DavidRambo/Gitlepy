@@ -88,6 +88,7 @@ class Repo:
         """Returns the name of the currently checked out branch."""
         return self.head.read_text()
 
+    @property
     def head_commit_id(self) -> str:
         """Returns the ID of the currrently checked out commit."""
         return Path(self.branches_dir / self.current_branch).read_text()
@@ -182,7 +183,7 @@ class Repo:
         index = self.load_index()
 
         # Is it unchanged since most recent commit?
-        head_commit = self.load_commit(self.head_commit_id())
+        head_commit = self.load_commit(self.head_commit_id)
         if new_blob.id in head_commit.blobs.keys():
             # Yes -> Do not stage, and remove if already staged.
             if index.is_staged(filename):
@@ -210,7 +211,7 @@ class Repo:
             target : commit from which to check out the file
         """
         if target == "":  # Checkout the file from HEAD.
-            commit = self.load_commit(self.head_commit_id())
+            commit = self.load_commit(self.head_commit_id)
         else:
             commit_id = self._match_commit_id(target)
             if not commit_id:

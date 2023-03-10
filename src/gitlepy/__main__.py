@@ -100,7 +100,7 @@ def add(repo, files: Tuple[str]) -> None:
 @pass_repo
 def commit(repo, message: str) -> None:
     """Commit contents in staging area to Gitlepy repository."""
-    new_head_id = repo.new_commit(repo.head_commit_id(), message)
+    new_head_id = repo.new_commit(repo.head_commit_id, message)
     Path(repo.branches_dir / repo.current_branch).write_text(new_head_id)
 
 
@@ -108,7 +108,7 @@ def commit(repo, message: str) -> None:
 @pass_repo
 def log(repo) -> None:
     """Prints a log of commits beginning from the HEAD."""
-    commit_id = repo.head_commit_id()
+    commit_id = repo.head_commit_id
     while commit_id is not None:
         commit = repo.load_commit(commit_id)
         print(commit)
@@ -141,7 +141,7 @@ def branch(repo, branchname: str, delete: bool) -> None:
     elif not branch_path.exists() and not delete:
         branch_path.touch()
         # Write current HEAD commit to new branch.
-        branch_path.write_text(repo.head_commit_id())
+        branch_path.write_text(repo.head_commit_id)
     else:
         click.echo("Cannot delete: No branch with that name exists.")
 
