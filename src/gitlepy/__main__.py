@@ -159,5 +159,17 @@ def checkout(repo, target, filename):
         click.echo("Incorrect operands.")
 
 
+@main.command()
+@click.argument("target", required=True)
+@pass_repo
+def reset(repo, target: str):
+    """Reset the working directory to target commit.
+
+    Usage:
+        gitlepy reset <commit id>\n
+    """
+    pass
+
+
 if __name__ == "__main__":
     main()
