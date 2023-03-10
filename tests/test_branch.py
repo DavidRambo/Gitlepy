@@ -31,3 +31,25 @@ def test_branches_list(runner, setup_repo):
     assert len(result) == 2
     assert "main" in result
     assert "dev" in result
+
+
+def test_branch_delete(runner, setup_repo):
+    """Creates a branch and deletes it."""
+    runner.invoke(main, ["branch", "dev"])
+    dev_path = Path(setup_repo["branches"] / "dev")
+    assert dev_path.exists()
+    result = runner.invoke(main, ["branch", "-d", "dev"])
+    assert result.output == ""
+    assert not dev_path.exists()
+
+
+def test_branch_delete_not_exist(runner, setup_repo):
+    """Tries to delete a non-existent branch."""
+    result = runner.invoke(main, ["branch", "-d", "dev"])
+    assert result.output == "Cannot delete: No branch with that name exists.\n"
+
+
+def test_branch_delete_current(runner, setup_repo):
+    """Tries to delete currently checked out branch."""
+    result = runner.invoke(main, ["branch", "-d", "main"])
+    assert result.output == "Cannot delete currently checked out branch.\n"
