@@ -15,7 +15,7 @@ def test_checkout_no_operands(runner, setup_repo):
 
 def test_checkout_file_invalid_target(runner, setup_repo):
     """Tries to checkout a file from a non-existent commit."""
-    result = runner.invoke(main, ["checkout", "abc56e", "-f a.txt"])
+    result = runner.invoke(main, ["checkout", "abc56e", "-f", "a.txt"])
     assert result.output == "abc56e is not a valid commit.\n"
 
 
@@ -49,3 +49,45 @@ def test_checkout_new_branch(runner, setup_repo):
     dev_path = Path(setup_repo["branches"] / "dev")
     dev_head = dev_path.read_text()
     assert main_head == dev_head
+
+
+def test_checkout_file_head(runner, setup_repo):
+    """Checks out a file from the current HEAD commit."""
+    file_a = Path(setup_repo["work_path"] / "a.txt")
+    file_a.touch()
+    file_a.write_text("Hello")
+    runner.invoke(main, ["add", "a.txt"])
+    runner.invoke(main, ["commit", "Hello > a.txt"])
+    file_a.write_text("Hello, gitlepy.")
+    result = runner.invoke(main, ["checkout", "-f", "a.txt"])
+    assert result.output == ""
+    assert file_a.read_text() == "Hello"
+
+
+def test_checkout_branch_files(runner, setup_repo):
+    """Checks out a branch, changes files, and checks out previous branch."""
+    file_a = Path(setup_repo["work_path"] / "a.txt")
+    file_a.touch()
+    file_a.write_text("Hello")
+    runner.invoke(main, ["add", "a.txt"])
+    runner.invoke(main, ["commit", "Hello > a.txt"])
+
+    file_b = Path(setup_repo["work_path"] / "b.txt")
+    file_b.touch()
+    file_b.write_text("Hi")
+    runner.invoke(main, ["add", "b.txt"])
+    runner.invoke(main, ["commit", "Hello > a.txt"])
+
+    runner.invoke(main, ["branch", "dev"])  # create dev branch
+    runner.invoke(main, ["checkout", "dev"])  # checkout dev
+
+    file_a.write_text("Hello, dev.")
+    file_b.write_text("Hi, dev.")
+    runner.invoke(main, ["add", "a.txt", "b.txt"])
+    # runner.invoke(main, ["add", "b.txt"])
+    runner.invoke(main, ["commit", "add dev to a and b"])
+
+    # Checkout main and validate file contents.
+    runner.invoke(main, ["checkout", "main"])
+    assert file_a.read_text() == "Hello"
+    assert file_b.read_text() == "Hi"
