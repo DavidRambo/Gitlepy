@@ -238,13 +238,26 @@ class Repo:
                 print(f"Already on '{target}'")
                 return
 
-            # Path object for branch rile
-            target_branch = Path(self.branches_dir / target)
+            # Update HEAD to target branch
+            self.head.write_text(target)
+            # Checkout the head commit for target branch.
+            self.checkout_commit(self.get_branch_head(target))
+        else:
+            print(f"{target} is not a valid branch name.")
 
-            # Load head commit for target branch.
-            blobs: dict = self.get_blobs(self.get_branch_head(target))
+    def checkout_commit(self, target: str) -> None:
+        """Checks out the given commit.
 
-            # Delete files untracked by target branch.
+        target: id of the commit.
+        """
+        # Validate target as commit id
+        target_commit_id = self._match_commit_id(target)
+        if not target_commit_id:
+            print("No commit with that id exists.")
+        else:
+            blobs: dict = self.get_blobs(target_commit_id)
+
+            # Delete files untracked by target commit.
             # First get all paths in working directory.
             all_paths = list(self.work_dir.glob("*"))
             # Remove hidden files and directories.
@@ -260,15 +273,15 @@ class Repo:
                 file = Path(self.work_dir / filename)
                 blob = self.load_blob(blobs[filename])
                 file.write_text(blob.file_contents)
-            # Update HEAD to reference checked out branch.
-            self.head.write_text(target)
+
+            # Update current branch HEAD to reference checked out commit.
+            current_branch = Path(self.branches_dir / self.head.read_text())
+            current_branch.write_text(target_commit_id)
 
             # clear the staging area
             index = self.load_index()
             index.clear()
             index.save()
-        else:
-            print(f"{target} is not a valid branch name.")
 
     def _match_commit_id(self, target: str) -> Optional[str]:
         """Determines whether the `target` string is a valid commit.
