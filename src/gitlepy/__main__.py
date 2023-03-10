@@ -168,7 +168,7 @@ def reset(repo, target: str):
     Usage:
         gitlepy reset <commit id>\n
     """
-    pass
+    repo.checkout_commit(target)
 
 
 if __name__ == "__main__":
