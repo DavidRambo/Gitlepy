@@ -35,9 +35,9 @@ class Repo:
             .gitlepy/HEAD
         branches (list) : List of branch names.
         commits (list) : List of commit IDs.
+        current_branch (str) : Name of the currently checked out branch.
 
     Methods:
-        current_branch
         head_commit_id
         load_commit
         load_index
@@ -83,13 +83,14 @@ class Repo:
             result.append(file.name)
         return result
 
+    @property
     def current_branch(self) -> str:
         """Returns the name of the currently checked out branch."""
         return self.head.read_text()
 
     def head_commit_id(self) -> str:
         """Returns the ID of the currrently checked out commit."""
-        return Path(self.branches_dir / self.current_branch()).read_text()
+        return Path(self.branches_dir / self.current_branch).read_text()
 
     def get_branch_head(self, branch: str) -> str:
         """Returns the commit ID (the head) of the given branch."""
@@ -234,7 +235,7 @@ class Repo:
         """
         if target in self.branches:  # Validate target is a branch.
             # Don't checkout current branch.
-            if target == self.current_branch():
+            if target == self.current_branch:
                 print(f"Already on '{target}'")
                 return
 

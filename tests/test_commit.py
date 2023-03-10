@@ -76,8 +76,8 @@ def test_head_update():
 
     new_head_id = repo.new_commit(repo.head_commit_id(), "hi > a.txt")
     assert new_head_id != init_commit_id
-    Path(repo.branches_dir / repo.current_branch()).write_text(new_head_id)
-    current_head_id = Path(repo.branches_dir / repo.current_branch()).read_text()
+    Path(repo.branches_dir / repo.current_branch).write_text(new_head_id)
+    current_head_id = Path(repo.branches_dir / repo.current_branch).read_text()
     assert current_head_id == new_head_id
 
 
