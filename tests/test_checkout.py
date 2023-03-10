@@ -76,7 +76,7 @@ def test_checkout_branch_files(runner, setup_repo):
     file_b.touch()
     file_b.write_text("Hi")
     runner.invoke(main, ["add", "b.txt"])
-    runner.invoke(main, ["commit", "Hello > a.txt"])
+    runner.invoke(main, ["commit", "Hi > b.txt"])
 
     runner.invoke(main, ["branch", "dev"])  # create dev branch
     runner.invoke(main, ["checkout", "dev"])  # checkout dev
@@ -91,3 +91,33 @@ def test_checkout_branch_files(runner, setup_repo):
     runner.invoke(main, ["checkout", "main"])
     assert file_a.read_text() == "Hello"
     assert file_b.read_text() == "Hi"
+
+
+def test_reset(runner, setup_repo):
+    """Resets to earlier commit."""
+    # First commit has a.txt
+    file_a = Path(setup_repo["work_path"] / "a.txt")
+    file_a.touch()
+    file_a.write_text("Hello")
+    runner.invoke(main, ["add", "a.txt"])
+    runner.invoke(main, ["commit", "Hello > a.txt"])
+
+    # Retrieve that commit id for future reset command.
+    main_ref = Path(setup_repo["branches"] / "main")
+    commit_a = main_ref.read_text()
+
+    # Second commit adds b.txt
+    file_b = Path(setup_repo["work_path"] / "b.txt")
+    file_b.touch()
+    file_b.write_text("Hi")
+    runner.invoke(main, ["add", "b.txt"])
+    runner.invoke(main, ["commit", "Hi > b.txt"])
+
+    # Third commit writes text to a.txt
+    file_a.write_text("Hello, main.")
+    runner.invoke(main, ["add", "a.txt"])
+    runner.invoke(main, ["commit", "Hello, main. > a.txt"])
+
+    # Reset to first commit and ensure b.txt is gone.
+    runner.invoke(main, ["reset", commit_a])
+    assert main_ref.read_text() == commit_a
