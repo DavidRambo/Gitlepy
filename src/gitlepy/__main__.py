@@ -4,12 +4,12 @@ from pathlib import Path
 import pickle
 import os.path
 import sys
+from typing import Tuple
 
 # from typing import Dict
 
 import click
 
-from gitlepy.commit import Commit
 from gitlepy.index import Index
 from gitlepy.repository import Repo
 
@@ -80,16 +80,18 @@ def init(repo) -> None:
 
 
 @main.command()
-@click.argument("filename")
+@click.argument("files", nargs=-1)
 @pass_repo
-def add(repo, filename: str) -> None:
+def add(repo, files: Tuple[str]) -> None:
     """Add a file to the staging area."""
-    # Validate file.
-    if not os.path.isfile(os.path.join(repo.work_dir, filename)):
-        click.echo(f"{filename} does not exist.")
-        sys.exit(1)
-    # Call repository method to stage the file.
-    repo.add(filename)
+    for filename in files:
+        # Validate file.
+        if not os.path.isfile(os.path.join(repo.work_dir, filename)):
+            click.echo(f"{filename} does not exist.")
+            sys.exit(1)
+        # Call repository method to stage the file.
+        repo.add(filename)
+
     return
 
 
@@ -133,6 +135,7 @@ def branch(repo, branchname: str) -> None:
     "-f",
     "--file",
     "filename",
+    type=str,
     required=False,
     help="Specify the file to checkout.",
 )
