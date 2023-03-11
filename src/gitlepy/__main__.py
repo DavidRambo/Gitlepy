@@ -116,6 +116,21 @@ def log(repo) -> None:
 
 
 @main.command()
+@pass_repo
+def status(repo) -> None:
+    """Displays the status of the gitlepy repo.
+
+    It prints lists of:
+        - branches, marking the current with an asterisk,
+        - staged files,
+        - removed files,
+        - modifications not staged for commit,
+        - untracked files.
+    """
+    click.echo(repo)
+
+
+@main.command()
 @click.argument("branchname")
 @click.option(
     "-d",

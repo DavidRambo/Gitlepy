@@ -126,6 +126,20 @@ class Repo:
         commit_obj = self.load_commit(commit_id)
         return commit_obj.blobs
 
+    @property
+    def untracked_files(self) -> list[str]:
+        """Returns a list of files in the working directory that are neither
+        tracked by the current commit nor in the staging area.
+        """
+        # TODO: Implement
+        raise NotImplementedError
+
+    @property
+    def unstaged_modifications(self) -> list[str]:
+        """Returns a list of tracked files modified but not staged."""
+        # TODO: Implement
+        raise NotImplementedError
+
     def new_commit(self, parent: str, message: str) -> str:
         """Creates a new Commit object and saves to the repostiory.
 
@@ -305,3 +319,30 @@ class Repo:
                 return matches[0]
         # else return None
         return None
+
+    def __str__(self) -> str:
+        """The string representation of a Repo object is its current status."""
+        output: str = ""
+        # Branches
+        output = "=== Branches ===\n"
+        for branch in self.branches:
+            if branch == self.current_branch:
+                output += "*"
+            output += f"{branch}\n"
+
+        # Staging Area
+        index = self.load_index()
+        # Staged Files
+        output += "\n=== Staged Files ===\n"
+        for file in index.additions:
+            output += f"{file}\n"
+        # Removed Files
+        output += "\n=== Removed Files ===\n"
+        for file in index.removals:
+            output += f"{file}\n"
+
+        # TODO: Modifications Not Staged For Commit
+        output += "\n === Modifications Not Staged For Commit ===\n"
+        # TODO: Untracked Files
+        output += "\n === Untracked Files ===\n"
+        return output
