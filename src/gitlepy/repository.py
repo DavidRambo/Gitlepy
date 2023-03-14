@@ -138,7 +138,8 @@ class Repo:
     @property
     def untracked_files(self) -> list[str]:
         """Returns a list of files in the working directory that are neither
-        tracked by the current commit nor in the staging area.
+        tracked by the current commit nor staged for addition; also includes
+        files staged for removal and then recreated.
         """
         untracked_files: list[str] = []
 
@@ -147,12 +148,11 @@ class Repo:
 
         index = self.load_index()
         staged_files: set = set(index.additions.keys())
-        staged_files = staged_files.union(index.removals)
 
         tracked_files = tracked_files.union(staged_files)
 
         for file in self.working_files:
-            if file not in tracked_files:
+            if file not in tracked_files or file in index.removals:
                 untracked_files.append(file)
 
         untracked_files.sort()
@@ -162,8 +162,8 @@ class Repo:
     @property
     def unstaged_modifications(self) -> list[str]:
         """Returns a list of tracked files modified but not staged,
-           including a parenthetical indication of whether the file has been
-           modified or deleted.
+        including a parenthetical indication of whether the file has been
+        modified or deleted.
 
         Such a file is either:
         - tracked in current commit, changed in working directory, but not staged;
