@@ -83,7 +83,7 @@ def init(repo) -> None:
 @click.argument("files", nargs=-1)
 @pass_repo
 def add(repo, files: Tuple[str]) -> None:
-    """Add a file to the staging area."""
+    """Add a file or files to the staging area."""
     for filename in files:
         # Validate file.
         if not os.path.isfile(os.path.join(repo.work_dir, filename)):
@@ -92,6 +92,16 @@ def add(repo, files: Tuple[str]) -> None:
         # Call repository method to stage the file.
         repo.add(filename)
 
+    return
+
+
+@main.command()
+@click.argument("files", nargs=-1)
+@pass_repo
+def rm(repo, files: Tuple[str]) -> None:
+    """Stage a file or files for removal."""
+    for filename in files:
+        repo.remove(filename)
     return
 
 
@@ -127,7 +137,7 @@ def status(repo) -> None:
         - modifications not staged for commit,
         - untracked files.
     """
-    click.echo(repo)
+    click.echo(repo.status())
 
 
 @main.command()

@@ -293,8 +293,11 @@ class Repo:
             pickle.dump(new_blob, f)
 
     def remove(self, filename: str) -> None:
-        """Stages a file for removal. If tracked and in the working directory,
-        deletes the file. Note: does not delete the file if it is untracked.
+        """If the file is staged for addition, unstages it. Otherwise, if
+        tracked and not staged, stages it file for removal. If tracked and
+        in the working directory, deletes the file.
+
+        Note: does not delete the file if it is untracked.
         """
         index: Index = self.load_index()
 
@@ -303,16 +306,22 @@ class Repo:
             print("That file is already staged for removal.")
             return
 
-        # Stage for removal and save the index.
-        index.remove(filename)
-        index.save()
+        tracked_files = list(self.get_blobs(self.head_commit_id).keys())
 
-        # Is it a tracked file?
-        if filename in self.get_blobs(self.head_commit_id).keys():
+        if filename in index.additions:
+            # Stage for removal and save the index.
+            index.unstage(filename)
+            index.save()
+        elif filename in tracked_files:
+            index.remove(filename)
+            index.save()
             # Delete it if not already deleted.
             file_path = Path(self.work_dir / filename)
             if file_path.exists():
                 file_path.unlink()
+        else:  # Neither staged nor tracked -> do nothing.
+            print("No reason to remove the file.")
+            return
 
     def checkout_file(self, filename: str, target: str = "") -> None:
         """Checks out a file from some commit.

@@ -7,6 +7,7 @@ import pytest
 
 from gitlepy.__main__ import main
 from gitlepy.index import Index
+from gitlepy.repository import Repo
 
 
 def test_index_file(runner, setup_repo):
@@ -35,7 +36,6 @@ def test_add(runner, setup_repo):
         setup_repo (dict): A dict containing Path objects to the repository's
             file structure. (See above for the setup_repo fixture.)
     """
-    # runner.invoke(main, ["init"])
     # Create a new file and write some text to it.
     file_a = Path("a.txt")
     file_a.touch()
@@ -51,3 +51,64 @@ def test_add(runner, setup_repo):
     assert repr(test_index) == "Index"
     assert len(test_index.additions) == 1
     assert "a.txt" in test_index.additions.keys()
+
+
+def test_rm_none(runner, setup_repo):
+    """Tries to removae an untracked, unstaged file."""
+    file_a = Path("a.txt")
+    file_a.touch()
+    assert file_a.exists()
+    result = runner.invoke(main, ["rm", "a.txt"])
+    assert result.output == "No reason to remove the file.\n"
+
+
+def test_rm_unstage(runner, setup_repo):
+    """Removes a file from the stagind area."""
+    file_a = Path("a.txt")
+    file_a.touch()
+    assert file_a.exists()
+    runner.invoke(main, ["add", "a.txt"])
+    result = runner.invoke(main, ["rm", "a.txt"])
+    assert result.output == ""
+
+
+def test_rm_removal_already_deleted(runner, setup_repo):
+    """Stages a file for removal."""
+    file_a = Path("a.txt")
+    file_a.touch()
+    assert file_a.exists()
+    runner.invoke(main, ["add", "a.txt"])
+    runner.invoke(main, ["commit", "Add a.txt"])
+    file_a.unlink()
+    result = runner.invoke(main, ["rm", "a.txt"])
+    assert not file_a.exists()
+    assert result.output == ""
+
+
+def test_rm_removal_and_delete(runner, setup_repo):
+    """Stages a file for removal."""
+    file_a = Path("a.txt")
+    file_a.touch()
+    assert file_a.exists()
+    runner.invoke(main, ["add", "a.txt"])
+    runner.invoke(main, ["commit", "Add a.txt"])
+    result = runner.invoke(main, ["rm", "a.txt"])
+
+    repo = Repo(Path.cwd())
+    index = repo.load_index()
+    assert "a.txt" in index.removals
+    assert not file_a.exists()
+    assert result.output == ""
+
+
+def test_rm_already_staged_removal(runner, setup_repo):
+    """Tries to remove a file already staged for removal."""
+    file_a = Path("a.txt")
+    file_a.touch()
+    assert file_a.exists()
+    runner.invoke(main, ["add", "a.txt"])
+    runner.invoke(main, ["commit", "Add a.txt"])
+    runner.invoke(main, ["rm", "a.txt"])
+    result = runner.invoke(main, ["rm", "a.txt"])
+    expected = "That file is already staged for removal.\n"
+    assert result.output == expected

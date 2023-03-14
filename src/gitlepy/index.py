@@ -47,11 +47,14 @@ class Index:
 
     def unstage(self, filename: str) -> None:
         """Removes the specified file from the staging area."""
-        del self.additions[filename]
+        if filename in self.additions:
+            del self.additions[filename]
+        elif filename in self.removals:
+            del self.removals[filename]
 
     def remove(self, filename: str) -> None:
         """Stages the specified file for removal."""
-        self.removals.append(filename)
+        self.removals.add(filename)
 
     def clear(self) -> None:
         """Clears the staging area."""
