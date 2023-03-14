@@ -49,6 +49,10 @@ class Index:
         """Removes the specified file from the staging area."""
         del self.additions[filename]
 
+    def remove(self, filename: str) -> None:
+        """Stages the specified file for removal."""
+        self.removals.append(filename)
+
     def clear(self) -> None:
         """Clears the staging area."""
         self.additions.clear()
