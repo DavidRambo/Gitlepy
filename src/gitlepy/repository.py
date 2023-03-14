@@ -127,12 +127,37 @@ class Repo:
         return commit_obj.blobs
 
     @property
+    def working_files(self) -> list[str]:
+        """Returns a list of non-hidden files in the working directory."""
+        all_paths = list(self.work_dir.glob("*"))
+        working_files = [
+            file.name for file in all_paths if not file.name.startswith(".")
+        ]
+        return working_files
+
+    @property
     def untracked_files(self) -> list[str]:
         """Returns a list of files in the working directory that are neither
         tracked by the current commit nor in the staging area.
         """
-        # TODO: Implement
-        raise NotImplementedError
+        untracked_files: list[str] = []
+
+        # Create a set of all tracked or staged files.
+        tracked_files: set = set(self.get_blobs(self.head_commit_id).keys())
+
+        index = self.load_index()
+        staged_files: set = set(index.additions.keys())
+        staged_files = staged_files.union(index.removals)
+
+        tracked_files = tracked_files.union(staged_files)
+
+        for file in self.working_files:
+            if file not in tracked_files:
+                untracked_files.append(file)
+
+        untracked_files.sort()
+
+        return untracked_files
 
     @property
     def unstaged_modifications(self) -> list[str]:
@@ -274,13 +299,7 @@ class Repo:
             blobs: dict = self.get_blobs(target_commit_id)
 
             # Delete files untracked by target commit.
-            # First get all paths in working directory.
-            all_paths = list(self.work_dir.glob("*"))
-            # Remove hidden files and directories.
-            working_files = [
-                file.name for file in all_paths if not file.name.startswith(".")
-            ]
-            for filename in working_files:
+            for filename in self.working_files:
                 if filename not in blobs:
                     Path(self.work_dir / filename).unlink()
 
@@ -320,8 +339,8 @@ class Repo:
         # else return None
         return None
 
-    def __str__(self) -> str:
-        """The string representation of a Repo object is its current status."""
+    def status(self) -> str:
+        """Returns a string representation of the repository's current status."""
         output: str = ""
         # Branches
         output = "=== Branches ===\n"
