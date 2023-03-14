@@ -128,3 +128,110 @@ def test_unstaged_modifications_removal_readded(runner, setup_repo):
     expected_2 = ["a.txt"]
     result_2 = repo.untracked_files
     assert expected_2 == result_2
+
+
+def test_status_branches(runner, setup_repo):
+    """Checks status with multiple branches."""
+    runner.invoke(main, ["branch", "dev"])
+    result = runner.invoke(main, ["status"])
+    expected = _status_helper(["dev", "*main"])
+    assert expected == result.output
+
+
+def test_status_staged(runner, setup_repo):
+    """Checks status with staged files."""
+    file_a = Path(setup_repo["work_path"] / "a.txt")
+    file_a.touch()
+    runner.invoke(main, ["add", "a.txt"])
+    result = runner.invoke(main, ["status"])
+    expected = _status_helper(branches=["*main"], staged=["a.txt"])
+    assert expected == result.output
+
+
+def test_status_removed(runner, setup_repo):
+    """Checks status with file staged for removal."""
+    file_a = Path(setup_repo["work_path"] / "a.txt")
+    file_a.touch()
+    runner.invoke(main, ["add", "a.txt"])
+    runner.invoke(main, ["commit", "Add a.txt"])
+    runner.invoke(main, ["rm", "a.txt"])
+    result = runner.invoke(main, ["status"])
+    expected = _status_helper(branches=["*main"], removed=["a.txt"])
+    assert expected == result.output
+
+
+def test_status_mods_not_staged(runner, setup_repo):
+    """Checks status with unstaged modifications."""
+    file_a = Path(setup_repo["work_path"] / "a.txt")
+    file_a.touch()
+    runner.invoke(main, ["add", "a.txt"])
+    runner.invoke(main, ["commit", "Add a.txt"])
+    file_a.write_text("Hello")
+    result = runner.invoke(main, ["status"])
+    expected = _status_helper(branches=["*main"], modified=["a.txt (modified)"])
+    assert expected == result.output
+
+
+def test_status_untracked(runner, setup_repo):
+    """Checks status with untracked files."""
+    file_a = Path(setup_repo["work_path"] / "a.txt")
+    file_a.touch()
+    result = runner.invoke(main, ["status"])
+    expected = _status_helper(branches=["*main"], untracked=["a.txt"])
+    assert expected == result.output
+
+
+def test_status_full(runner, setup_repo):
+    """Tests status with all four categories."""
+    runner.invoke(main, ["branch", "dev"])
+    file_a = Path(setup_repo["work_path"] / "a.txt")
+    file_a.touch()
+    file_d = Path(setup_repo["work_path"] / "d.txt")
+    file_d.touch()
+    runner.invoke(main, ["add", "a.txt", "d.txt"])
+    runner.invoke(main, ["commit", "Add a and d"])
+    runner.invoke(main, ["rm", "d.txt"])  # removed
+    file_b = Path(setup_repo["work_path"] / "b.txt")
+    file_b.touch()  # untracked
+    file_c = Path(setup_repo["work_path"] / "c.txt")
+    file_c.touch()
+    runner.invoke(main, ["add", "c.txt"])  # staged
+    file_a.write_text("hi, a")  # mod but not staged
+    expected = _status_helper(
+        branches=["dev", "*main"],
+        staged=["c.txt"],
+        removed=["d.txt"],
+        modified=["a.txt (modified)"],
+        untracked=["b.txt"],
+    )
+    result = runner.invoke(main, ["status"])
+    assert expected == result.output
+
+
+def _status_helper(
+    branches: list[str] = [],
+    staged: list[str] = [],
+    removed: list[str] = [],
+    modified: list[str] = [],
+    untracked: list[str] = [],
+) -> str:
+    """Helper function to create status strings."""
+    output = "=== Branches ===\n"
+    for branch in branches:
+        output += f"{branch}\n"
+    output += "\n=== Staged Files ===\n"
+    for file in staged:
+        output += f"{file}\n"
+    output += "\n=== Removed Files ===\n"
+    for file in removed:
+        output += f"{file}\n"
+    output += "\n=== Modifications Not Staged For Commit ===\n"
+    for file in modified:
+        output += f"{file}\n"
+    output += "\n=== Untracked Files ===\n"
+    for file in untracked:
+        output += f"{file}\n"
+
+    output += "\n"  # for click.echo()'s added new line
+
+    return output
