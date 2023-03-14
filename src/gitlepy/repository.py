@@ -186,21 +186,14 @@ class Repo:
                 continue
 
             if filename in working_files:
-                file = Path(self.work_dir / filename)
-                current_contents = file.read_text()
                 # First compare with staged file
-                if filename in index.additions:
-                    staged_blob: Blob = self.load_blob(index.additions[filename])
-                    staged_contents = staged_blob.file_contents
-                    if current_contents != staged_contents:
-                        unstaged_files.append(f"{filename} (modified)")
-                        continue
-                else:  # Then compare with tracked content
-                    tracked_blob: Blob = self.load_blob(tracked_blobs[filename])
-                    tracked_contents = tracked_blob.file_contents
-                    if current_contents != tracked_contents:
-                        unstaged_files.append(f"{filename} (modified)")
-                        continue
+                if self._modified_since_staged(filename):
+                    unstaged_files.append(f"{filename} (modified)")
+                    continue
+                # Then compare with tracked content
+                elif self._diff_from_tracked(filename):
+                    unstaged_files.append(f"{filename} (modified)")
+                    continue
 
         # Check untracked files staged for addition.
         for filename in index.additions.keys():
@@ -217,6 +210,31 @@ class Repo:
 
         unstaged_files.sort()
         return unstaged_files
+
+    def _modified_since_staged(self, filename: str) -> bool:
+        """Returns True if file has been modified since staged."""
+        index: Index = self.load_index()
+        if filename in index.additions:
+            staged_blob: Blob = self.load_blob(index.additions[filename])
+            staged_contents = staged_blob.file_contents
+            file = Path(self.work_dir / filename)
+            current_contents = file.read_text()
+            if current_contents != staged_contents:
+                return True
+        return False
+
+    def _diff_from_tracked(self, filename: str) -> bool:
+        """Returns True if file differs from tracked version and is not staged."""
+        index: Index = self.load_index()
+        if filename not in index.additions.keys():
+            tracked_blobs: dict = self.get_blobs(self.head_commit_id)
+            tracked_blob: Blob = self.load_blob(tracked_blobs[filename])
+            tracked_contents = tracked_blob.file_contents
+            file = Path(self.work_dir / filename)
+            current_contents = file.read_text()
+            if current_contents != tracked_contents:
+                return True
+        return False
 
     def new_commit(self, parent: str, message: str) -> str:
         """Creates a new Commit object and saves to the repostiory.
