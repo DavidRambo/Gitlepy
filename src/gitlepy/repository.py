@@ -245,7 +245,7 @@ class Repo:
         # Record files staged for addition.
         c.blobs.update(index.additions)
 
-        # Remove files staged for remaval.
+        # Remove files staged for removal.
         for key in index.removals:
             del c.blobs[key]
 
@@ -291,6 +291,28 @@ class Repo:
         blob_path = Path(self.blobs_dir / new_blob.id)
         with open(blob_path, "wb") as f:
             pickle.dump(new_blob, f)
+
+    def remove(self, filename: str) -> None:
+        """Stages a file for removal. If tracked and in the working directory,
+        deletes the file. Note: does not delete the file if it is untracked.
+        """
+        index: Index = self.load_index()
+
+        # Check that file is not already staged for removal.
+        if filename in index.removals:
+            print("That file is already staged for removal.")
+            return
+
+        # Stage for removal and save the index.
+        index.remove(filename)
+        index.save()
+
+        # Is it a tracked file?
+        if filename in self.get_blobs(self.head_commit_id).keys():
+            # Delete it if not already deleted.
+            file_path = Path(self.work_dir / filename)
+            if file_path.exists():
+                file_path.unlink()
 
     def checkout_file(self, filename: str, target: str = "") -> None:
         """Checks out a file from some commit.
