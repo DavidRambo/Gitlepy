@@ -462,8 +462,13 @@ class Repo:
         for file in index.removals:
             output += f"{file}\n"
 
-        # TODO: Modifications Not Staged For Commit
-        output += "\n === Modifications Not Staged For Commit ===\n"
-        # TODO: Untracked Files
-        output += "\n === Untracked Files ===\n"
+        # Modifications Not Staged For Commit
+        output += "\n=== Modifications Not Staged For Commit ===\n"
+        for file in self.unstaged_modifications:
+            output += f"{file}\n"
+        # Untracked Files
+        output += "\n=== Untracked Files ===\n"
+        for file in self.untracked_files:
+            output += f"{file}\n"
+
         return output
