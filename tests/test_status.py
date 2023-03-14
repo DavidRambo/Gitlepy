@@ -109,7 +109,8 @@ def test_unstaged_modifications_none(runner, setup_repo):
 
 def test_unstaged_modifications_removal_readded(runner, setup_repo):
     """Tests Repo.unstaged_modifications property method by staging a file
-    for removal and then adding it back to the working directory.
+    for removal and then adding it back to the working directory. It is now
+    considered to be untracked.
     """
     repo = Repo(Path.cwd())
     file_a = Path(setup_repo["work_path"] / "a.txt")
@@ -118,6 +119,12 @@ def test_unstaged_modifications_removal_readded(runner, setup_repo):
     runner.invoke(main, ["commit", "Add a.txt"])
     runner.invoke(main, ["rm", "a.txt"])
     file_a.touch()
-    result = repo.unstaged_modifications
-    expected = ["a.txt (modified)"]
-    assert expected == result
+    assert file_a.exists()
+
+    result_1 = repo.unstaged_modifications
+    expected_1 = []
+    assert expected_1 == result_1
+
+    expected_2 = ["a.txt"]
+    result_2 = repo.untracked_files
+    assert expected_2 == result_2
