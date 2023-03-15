@@ -40,6 +40,7 @@ class Commit:
             message: Commit message.
         """
         self.parent_one = parent_one
+        self.parent_two = parent_two
         self.message = message
         self.blobs: Dict[str, str] = {}
 
