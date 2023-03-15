@@ -35,3 +35,14 @@ pip install -r dev-requirements.txt
 # And run pytest to make sure everything covered by tests works.
 pytest
 ```
+# TODO
+
+## Refactor merge methods
+Currently, `Repo.merge()` uses nested if blocks to determine the outcome of
+a merge. Since this is visually messy, I would like to convert it to use sets.
+
+## Convert Blob.file_contents to bytes
+Currently, I follow the Gitlet spec, which uses straight string representations
+of file contents. However, I would like to convert this to use bytes in order
+to make use of Python's memoryview object and chunking. I do this with the sha1
+hash of the Blob.
