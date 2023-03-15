@@ -384,14 +384,20 @@ class Repo:
             # Update HEAD to target branch
             self.head.write_text(target)
             # Checkout the head commit for target branch.
-            self.checkout_commit(self.get_branch_head(target))
+            self._checkout_commit(self.get_branch_head(target))
         else:
             print(f"{target} is not a valid branch name.")
 
-    def checkout_commit(self, target: str) -> None:
+    def _checkout_commit(self, target: str) -> None:
         """Checks out the given commit.
 
-        target: id of the commit.
+        Note that this is only ever called by checkout_branch and
+        _validate_history. Unlike git, gitlepy does not allow for
+        a detached HEAD state, and so checking out an arbitrary
+        commit is not allowed.
+
+        Args:
+            target: id of the commit, can be abbreviated.
         """
         # Validate target as commit id
         target_commit_id = self._match_commit_id(target)
@@ -401,6 +407,7 @@ class Repo:
             blobs: dict = self.get_blobs(target_commit_id)
 
             # Delete files untracked by target commit.
+            # TODO: Fix so it does not delete untracked files.
             for filename in self.working_files:
                 if filename not in blobs:
                     Path(self.work_dir / filename).unlink()
@@ -484,9 +491,18 @@ class Repo:
         if self._validate_merge(target):
             return
         target_commit_id = self.get_branch_head(target)
+
         # Get each branch's history and validate.
         current_history: list = self._history(self.head_commit_id)
         target_history: list = self._history(target_commit_id)
+        if self._validate_history(target, current_history, target_history):
+            return
+
+        # Find most recent common ancestor.
+        split_id: str = self._find_split(current_history, target_history)
+        if split_id == "":
+            print("No common ancestor found.")
+            return
 
     def _validate_merge(self, target: str) -> bool:
         """Error checking for merge method.
@@ -538,3 +554,30 @@ class Repo:
                 queue.append(current_commit.parent_two)
 
         return history
+
+    def _validate_history(
+        self, target_branch: str, current_history: list[str], target_history: list[str]
+    ) -> bool:
+        """Returns True if merge should be cancelled. Checks whether the
+        target branch is an unmodified ancestor of current branch. If the
+        target branch history contains the current HEAD, then the current
+        branch is fast-forwarded by checking out the target branch.
+        """
+        if self.get_branch_head(target_branch) in current_history:
+            print("Given branch is an ancestor of the current branch.")
+            return True
+        if self.head_commit_id in target_history:
+            print("Current branch is fast-forwarded.")
+            self._checkout_commit(self.get_branch_head(target_branch))
+            return True
+        return False
+
+    def _find_split(self, current_history: list[str], target_history: list[str]) -> str:
+        """Returns the most recent common ancestor of the two specified
+        commit histories.
+        """
+        for id in target_history:
+            if id in current_history:
+                return id
+
+        return ""
