@@ -50,7 +50,7 @@ class Index:
         if filename in self.additions:
             del self.additions[filename]
         elif filename in self.removals:
-            del self.removals[filename]
+            self.removals.discard(filename)
 
     def remove(self, filename: str) -> None:
         """Stages the specified file for removal."""
