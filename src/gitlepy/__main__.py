@@ -215,3 +215,15 @@ def reset(repo, target: str):
 
 if __name__ == "__main__":
     main()
+
+
+@main.command()
+@click.argument("target", required=True)
+@pass_repo
+def merge(repo, target: str):
+    """Merge the current branch with the specified branch.
+
+    Usage:
+        gitlepy merge <branch name>\n
+    """
+    raise NotImplementedError
