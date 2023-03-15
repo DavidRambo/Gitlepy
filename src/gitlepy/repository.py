@@ -101,7 +101,7 @@ class Repo:
         return p.read_text()
 
     def load_commit(self, commit_id: str) -> Commit:
-        """Returns the head commit object of the given branch."""
+        """Returns the Commit object with the specified ID."""
         commit_path = Path(self.commits_dir / commit_id)
         with open(commit_path, "rb") as file:
             return pickle.load(file)
@@ -472,3 +472,69 @@ class Repo:
             output += f"{file}\n"
 
         return output
+
+    def merge(self, target: str) -> None:
+        """Merges the current branch with the specified "target" branch.
+        It treats the current branch head as the parent commit, and then
+        by comparing files between the split point commit, the HEAD commit,
+        and the head of the given branch, it stages files for addition or
+        removal before creating a new commit.
+        """
+        # Validate the merge: True means invalid.
+        if self._validate_merge(target):
+            return
+        target_commit_id = self.get_branch_head(target)
+        # Get each branch's history and validate.
+        current_history: list = self._history(self.head_commit_id)
+        target_history: list = self._history(target_commit_id)
+
+    def _validate_merge(self, target: str) -> bool:
+        """Error checking for merge method.
+
+        Returns True if invalid.
+        """
+        # Check for untracked files.
+        if self.untracked_files:
+            print(
+                "There is an untracked file in the way;"
+                + " delete it, or add and commit it first."
+            )
+            return True
+
+        # Check whether staging area is clear.
+        index: Index = self.load_index()
+        if index.additions or index.removals:
+            print("You have uncommitted changes.")
+            return True
+        # Ensure not already checked out.
+        if target == self.current_branch:
+            print("Cannot merge a branch with itself.")
+            return True
+        # Check that the specified branch exists.
+        if target not in self.branches:
+            print("A branch with that name does not exist.")
+            return True
+
+        return False
+
+    def _history(self, head_id: str) -> list[str]:
+        """Returns a list of commit IDs composing the specified commit's
+        history.
+
+        In order to accommodate merge commits, which have two parents,
+        this method uses an intermediary queue to interlink divergent
+        branch histories.
+        """
+        history = []
+        queue = [head_id]
+
+        while queue:
+            current_id = queue.pop()
+            history.append(current_id)
+            current_commit: Commit = self.load_commit(current_id)
+            if current_commit.parent_one:
+                queue.append(current_commit.parent_one)
+            if current_commit.parent_two:
+                queue.append(current_commit.parent_two)
+
+        return history
