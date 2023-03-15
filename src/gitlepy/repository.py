@@ -4,6 +4,7 @@ All commands from gitlepy.main are dispatched to various functions in this modul
 from pathlib import Path
 import pickle
 import sys
+import tempfile
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -236,14 +237,16 @@ class Repo:
                 return True
         return False
 
-    def new_commit(self, parent: str, message: str) -> str:
+    def new_commit(
+        self, parent: str, message: str, merge_parent: Optional[str] = None
+    ) -> str:
         """Creates a new Commit object and saves to the repostiory.
 
         Args:
             parent: ID of the parent commit.
             message: Commit message.
         """
-        c = Commit(parent, message)
+        c = Commit(parent, message, merge_parent)
         c_file = Path.joinpath(self.commits_dir, c.commit_id)
 
         if parent == "":  # initial commit can be saved immediately
@@ -504,6 +507,16 @@ class Repo:
             print("No common ancestor found.")
             return
 
+        # Populate the staging area for the merge commit, and checkout
+        # files as necessary. Returns a list of merge conflicts.
+        conflicts: list[str] = self._prepare_merge(target_commit_id, split_id)
+
+        if conflicts:
+            self._merge_conflict(conflicts, target)
+        else:
+            merge_message = f"Merged {target} into {self.current_branch}"
+            self.new_commit(self.head_commit_id, merge_message, target_commit_id)
+
     def _validate_merge(self, target: str) -> bool:
         """Error checking for merge method.
 
@@ -581,3 +594,124 @@ class Repo:
                 return id
 
         return ""
+
+    def _prepare_merge(self, target_commit_id: str, split_id: str) -> list[str]:
+        """Prepares the staging area for a merge commit and returns a list
+        of conflicted files.
+
+        Args:
+            target_commit_id: ID of the commit at the head of the branch to be merged.
+            split_id: ID of the most recent commont ancestor commit.
+        """
+        conflicts: list[str] = []
+        head_blobs: Dict[str, str] = self.get_blobs(self.head_commit_id)
+        target_blobs: Dict[str, str] = self.get_blobs(target_commit_id)
+        split_blobs: Dict[str, str] = self.get_blobs(split_id)
+
+        for filename in head_blobs:
+            head_blob: Blob = self.load_blob(head_blobs[filename])
+
+            if filename in target_blobs:  # file tracked by target branch
+                self._merge_head_target(
+                    conflicts,
+                    filename,
+                    head_blobs[filename],
+                    target_blobs[filename],
+                    split_blobs,
+                )
+            elif filename in split_blobs:  # Not in target branch
+                split_blob: Blob = self.load_blob(split_blobs[filename])
+                # If unmodified in HEAD since split, then remove.
+                if head_blob == split_blob:
+                    index: Index = self.load_index()
+                    index.remove(filename)
+                    index.save()
+            # Remove file from target_blobs
+            target_blobs.pop(filename, None)
+
+        # Check files in target branch and not in current branch's HEAD.
+        # (I.e. all [filename, blob_id] pairs remaining.)
+        self._merge_target_blobs(target_blobs, split_blobs, target_commit_id)
+
+        return conflicts
+
+    def _merge_head_target(
+        self,
+        conflicts: list[str],
+        filename: str,
+        head_blob_id: str,
+        target_blob_id: str,
+        split_blobs: dict[str, str],
+    ) -> None:
+        """Helper method for _prepare_merge() that handles files tracked
+        by the target branch.
+        """
+        index: Index = self.load_index()
+        head_blob: Blob = self.load_blob(head_blob_id)
+        target_blob: Blob = self.load_blob(target_blob_id)
+        # Check for file at split point
+        if filename in split_blobs:
+            split_blob: Blob = self.load_blob(split_blobs[filename])
+            if split_blob != target_blob:  # Modified in target branch.
+                # Not modified in current HEAD -> keep target version.
+                if head_blob == split_blob:
+                    index.stage(filename, target_blob_id)
+                # Modified in HEAD -> check for conflict.
+            elif head_blob != target_blob:
+                conflicts.append(filename)
+        elif head_blob != target_blob:  # Not in split commit.
+            conflicts.append(filename)
+
+        index.save()
+
+    def _merge_target_blobs(
+        self,
+        target_blobs: dict[str, str],
+        split_blobs: dict[str, str],
+        target_commit_id: str,
+    ) -> None:
+        index: Index = self.load_index()
+        for filename in target_blobs:
+            target_blob_id = target_blobs[filename]
+            if filename not in split_blobs:  # Only present in target branch.
+                self.checkout_file(filename, target_commit_id)
+                index.stage(filename, target_blob_id)
+            elif target_blob_id != split_blobs[filename]:
+                index.stage(filename, target_blob_id)
+
+        index.save()
+
+    def _merge_conflict(self, conflicts: list[str], target_branch: str) -> None:
+        """Resolves files in conflict by concatenating the two, stages them,
+        and then creates a merge commit.
+        """
+        start = "<<<<<<< HEAD\n"
+        middle = "=======\n"
+        end = ">>>>>>>\n"
+
+        head_blobs: Dict[str, str] = self.get_blobs(self.head_commit_id)
+        target_blobs: Dict[str, str] = self.get_blobs(
+            self.get_branch_head(target_branch)
+        )
+
+        for filename in conflicts:
+            head_file = Path(self.work_dir / filename)
+            # head_blob: Blob = self.load_blob(head_blobs[filename])
+            target_blob: Blob = self.load_blob(target_blobs[filename])
+
+            with tempfile.SpooledTemporaryFile(mode="w+t") as temp:
+                temp.write(start)
+                temp.write(head_file.read_text())
+                temp.write(middle)
+                temp.write(target_blob.file_contents)
+                temp.write(end)
+                temp.seek(0)
+                head_file.write_text(temp.read())
+
+            self.add(filename)
+
+        merge_message = f"Merged f{self.current_branch} into {target_branch}."
+        self.new_commit(
+            self.head_commit_id, merge_message, self.get_branch_head(target_branch)
+        )
+        print("Encountered a merge conflict.")
