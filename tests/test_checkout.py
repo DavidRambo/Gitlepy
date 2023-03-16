@@ -1,8 +1,5 @@
 """tests/test_checkout.py"""
 from pathlib import Path
-import pickle
-
-import pytest
 
 from gitlepy.__main__ import main
 

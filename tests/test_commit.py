@@ -5,8 +5,6 @@ Tests the commit command.
 from pathlib import Path
 import pickle
 
-import pytest
-
 from gitlepy.__main__ import main
 from gitlepy.index import Index
 from gitlepy.repository import Repo
