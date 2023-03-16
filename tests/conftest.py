@@ -28,7 +28,11 @@ def runner():
 
 @pytest.fixture()
 def setup_repo(runner):
-    """Initializes a Gitlepy repository."""
+    """Initializes a Gitlepy repository.
+
+    The temporary file structure implemented by pytest can be accessed
+    via setup_repo["work_path"] for example.
+    """
     runner.invoke(main, ["init"])
     repo_paths = {}
     repo_paths["work_path"] = Path(os.path.abspath("."))
