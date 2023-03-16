@@ -6,8 +6,6 @@ import os.path
 import sys
 from typing import Tuple
 
-# from typing import Dict
-
 import click
 
 from gitlepy.index import Index
@@ -25,7 +23,7 @@ pass_repo = click.make_pass_decorator(Repo)
     help="Changes the location of the repository folder.",
 )
 @click.pass_context
-def main(ctx, repo_home: str):
+def main(ctx, repo_home: str) -> None:
     if ctx.invoked_subcommand is None:
         click.echo("Incorrect operands.")
         return
@@ -213,10 +211,6 @@ def reset(repo, target: str):
     repo.checkout_commit(target)
 
 
-if __name__ == "__main__":
-    main()
-
-
 @main.command()
 @click.argument("target", required=True)
 @pass_repo
@@ -226,4 +220,8 @@ def merge(repo, target: str):
     Usage:
         gitlepy merge <branch name>\n
     """
-    raise NotImplementedError
+    repo.merge(target)
+
+
+if __name__ == "__main__":
+    main()
