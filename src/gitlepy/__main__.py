@@ -117,9 +117,9 @@ def commit(repo, message: str) -> None:
 def log(repo) -> None:
     """Prints a log of commits beginning from the HEAD."""
     commit_id = repo.head_commit_id
-    while commit_id is not None:
+    while commit_id != "":
         commit = repo.load_commit(commit_id)
-        print(commit)
+        click.echo(commit)
         commit_id = commit.parent_one
 
 
