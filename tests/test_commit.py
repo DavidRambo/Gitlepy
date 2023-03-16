@@ -1,16 +1,6 @@
 """tests/test_commit.py
 
 Tests the commit command.
-
-The first two tests each create a new commit and ensure their attributes
-(message, blobs) are correct. I can try to check the timestamp; however,
-this may be difficult depending on how exact it is. One way around exact
-matches of timestamps is to do a range between two times taken just before
-and just after the commit. To check the commit_ID, I will simply assert
-its length is 40.
-
-The third test checks that the log command works, which in turn entails
-that the Commit.__str__() method works.
 """
 from pathlib import Path
 import pickle
