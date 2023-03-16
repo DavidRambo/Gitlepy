@@ -517,14 +517,16 @@ class Repo:
             self.new_commit(self.head_commit_id, merge_message, target_commit_id)
 
     def _validate_merge(self, target: str) -> bool:
-        """Error checking for merge method.
+        """Error checking for merge method. Returns True if invalid.
 
-        Returns True if invalid.
+        Unlike Gitlet, Gitlepy does not overwrite untracked files during
+        a merge. Therefore, it does not consider untracked files to be
+        in the way of a merge.
         """
-        # Check for untracked files.
-        if self.untracked_files:
+        # Check for unstaged modifications files.
+        if self.unstaged_modifications:
             print(
-                "There is an untracked file in the way;"
+                "There is a file with unstaged changes;"
                 + " delete it, or add and commit it first."
             )
             return True
