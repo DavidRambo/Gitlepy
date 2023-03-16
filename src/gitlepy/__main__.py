@@ -204,7 +204,7 @@ def reset(repo, target: str):
     Usage:
         gitlepy reset <commit id>\n
     """
-    repo.checkout_commit(target)
+    repo.reset(target)
 
 
 @main.command()

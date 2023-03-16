@@ -47,7 +47,9 @@ class Repo:
         new_commit
         add
         checkout_file
-        checkout
+        checkout_branch
+        checkout_commit
+        merge
     """
 
     def __init__(self, repo_path: Path):
@@ -129,7 +131,7 @@ class Repo:
     @property
     def working_files(self) -> list[str]:
         """Returns a list of non-hidden files in the working directory."""
-        all_paths = list(self.work_dir.glob("*"))
+        all_paths: list[Path] = list(self.work_dir.glob("*"))
         working_files = [
             file.name for file in all_paths if not file.name.startswith(".")
         ]
@@ -263,12 +265,12 @@ class Repo:
         # Begin with parent commit's blobs
         c.blobs = self.get_blobs(parent)
 
-        # Record files staged for addition.
-        c.blobs.update(index.additions)
-
         # Remove files staged for removal.
         for key in index.removals:
             del c.blobs[key]
+
+        # Record files staged for addition.
+        c.blobs.update(index.additions)
 
         # Clear and save index to file system.
         index.clear()
@@ -277,6 +279,7 @@ class Repo:
         # Save the commit
         with open(c_file, "wb") as f:
             pickle.dump(c, f)
+
         return c.commit_id
 
     def add(self, filename: str) -> None:
@@ -378,56 +381,64 @@ class Repo:
 
         target: Name of a branch.
         """
-        if target in self.branches:  # Validate target is a branch.
-            # Don't checkout current branch.
-            if target == self.current_branch:
-                print(f"Already on '{target}'")
-                return
-
-            # Update HEAD to target branch
-            self.head.write_text(target)
-            # Checkout the head commit for target branch.
-            self.checkout_commit(self.get_branch_head(target))
-        else:
+        if target not in self.branches:  # Validate target is a branch.
             print(f"{target} is not a valid branch name.")
+        # Don't checkout current branch.
+        if target == self.current_branch:
+            print(f"Already on '{target}'")
+            return
 
-    def checkout_commit(self, target: str) -> None:
-        """Checks out the given commit.
+        old_head: str = self.head_commit_id
+        # Update HEAD to target branch
+        self.head.write_text(target)
+        # Checkout the head commit for target branch.
+        self._checkout_commit(old_head, self.get_branch_head(target))
 
-        Note that this is only ever called by checkout_branch and
-        _validate_history. Unlike git, gitlepy does not allow for
-        a detached HEAD state, and so checking out an arbitrary
-        commit is not allowed.
-
-        Args:
-            target: id of the commit, can be abbreviated.
-        """
+    def reset(self, target_id: str) -> None:
+        """Resets the current branch to the specified commit."""
         # Validate target as commit id
-        target_commit_id = self._match_commit_id(target)
+        target_commit_id = self._match_commit_id(target_id)
         if not target_commit_id:
             print("No commit with that id exists.")
-        else:
-            blobs: dict = self.get_blobs(target_commit_id)
+            return
 
-            # Delete files tracked by current commit and untracked by target commit.
-            for filename in self.working_files:
-                if filename not in blobs and filename not in self.untracked_files:
-                    Path(self.work_dir / filename).unlink()
+        self._checkout_commit(self.head_commit_id, target_id)
 
-            # Load file contents from blobs.
-            for filename in blobs:
-                file = Path(self.work_dir / filename)
-                blob = self.load_blob(blobs[filename])
-                file.write_text(blob.file_contents)
+        # Update current branch HEAD to reference checked out commit.
+        current_branch_path = Path(self.branches_dir / self.current_branch)
+        current_branch_path.write_text(target_id)
 
-            # Update current branch HEAD to reference checked out commit.
-            current_branch = Path(self.branches_dir / self.head.read_text())
-            current_branch.write_text(target_commit_id)
+    def _checkout_commit(self, old_head_id: str, target_id: str) -> None:
+        """Checks out the given commit.
 
-            # clear the staging area
-            index = self.load_index()
-            index.clear()
-            index.save()
+        This serves both the `gitlepy reset` and the `gitlepy checkout branch`
+        commands.
+
+        Unlike git, gitlepy does not allow for a detached HEAD state.
+        Instead, checking out an arbitrary commit (via `reset`) resets the
+        HEAD of the current branch to that commit.
+
+        Args:
+            target_id: id of the commit, can be abbreviated.
+        """
+        target_blobs: dict = self.get_blobs(target_id)
+
+        # Delete files tracked by current commit and untracked by target commit.
+        current_blobs: dict = self.get_blobs(old_head_id)
+        for filename in current_blobs.keys():
+            if filename not in target_blobs.keys():
+                Path(self.work_dir / filename).unlink()
+
+        # Load file contents from blobs.
+        for filename in target_blobs.keys():
+            file = Path(self.work_dir / filename)
+            blob: Blob = self.load_blob(target_blobs[filename])
+            file.write_text(blob.file_contents)
+
+        # clear the staging area
+        index = self.load_index()
+        index.clear()
+        index.save()
 
     def _match_commit_id(self, target: str) -> Optional[str]:
         """Determines whether the `target` string is a valid commit.
@@ -499,12 +510,14 @@ class Repo:
         # Validate the merge: True means invalid.
         if self._validate_merge(target):
             return
+
+        # Get target branch's head commit id.
         target_commit_id = self.get_branch_head(target)
 
         # Get each branch's history and validate.
         current_history: list = self._history(self.head_commit_id)
         target_history: list = self._history(target_commit_id)
-        if self._validate_history(target, current_history, target_history):
+        if self._validate_history(target_commit_id, current_history, target_history):
             return
 
         # Find most recent common ancestor.
@@ -577,19 +590,24 @@ class Repo:
         return history
 
     def _validate_history(
-        self, target_branch: str, current_history: list[str], target_history: list[str]
+        self, target_head: str, current_history: list[str], target_history: list[str]
     ) -> bool:
-        """Returns True if merge should be cancelled. Checks whether the
-        target branch is an unmodified ancestor of current branch. If the
+        """Returns True if merge should be cancelled. First checks whether the
+        target branch is an unmodified ancestor of the current branch. If the
         target branch history contains the current HEAD, then the current
         branch is fast-forwarded by checking out the target branch.
+
+        Args:
+            target_head: head commit id of the branch being merged.
+            current_history: commit history of the currently checked out branch.
+            target_history: commit history of the branch being merged.
         """
-        if self.get_branch_head(target_branch) in current_history:
-            print("Given branch is an ancestor of the current branch.")
+        if target_head in current_history:
+            print("Target branch is an ancestor of the current branch.")
             return True
         if self.head_commit_id in target_history:
             print("Current branch is fast-forwarded.")
-            self.checkout_commit(self.get_branch_head(target_branch))
+            self._checkout_commit(self.head_commit_id, target_head)
             return True
         return False
 
@@ -627,17 +645,20 @@ class Repo:
                     target_blobs[filename],
                     split_blobs,
                 )
-            elif filename in split_blobs:  # Not in target branch
+            elif filename in split_blobs:
+                # Not in target branch and present at split means
+                # removed from target branch.
                 split_blob: Blob = self.load_blob(split_blobs[filename])
                 # If unmodified in HEAD since split, then remove.
                 if head_blob == split_blob:
                     index: Index = self.load_index()
                     index.remove(filename)
                     index.save()
+                    Path(self.work_dir / filename).unlink()
             # Remove file from target_blobs
             target_blobs.pop(filename, None)
 
-        # Check files in target branch and not in current branch's HEAD.
+        # Check files in target branch, which are not in current branch's HEAD.
         # (I.e. all [filename, blob_id] pairs remaining.)
         self._merge_target_blobs(target_blobs, split_blobs, target_commit_id)
 
@@ -652,7 +673,7 @@ class Repo:
         split_blobs: dict[str, str],
     ) -> None:
         """Helper method for _prepare_merge() that handles files tracked
-        by the target branch.
+        by both the current branch and the target branch.
         """
         index: Index = self.load_index()
         # head_blob: Blob = self.load_blob(head_blob_id)
