@@ -185,6 +185,7 @@ class Repo:
                 unstaged_files.append(f"{filename} (deleted)")
                 continue
 
+            # File exists
             if filename in working_files:
                 # First compare with staged file
                 if self._modified_since_staged(filename):
@@ -408,10 +409,9 @@ class Repo:
         else:
             blobs: dict = self.get_blobs(target_commit_id)
 
-            # Delete files untracked by target commit.
-            # TODO: Fix so it does not delete untracked files.
+            # Delete files tracked by current commit and untracked by target commit.
             for filename in self.working_files:
-                if filename not in blobs:
+                if filename not in blobs and filename not in self.untracked_files:
                     Path(self.work_dir / filename).unlink()
 
             # Load file contents from blobs.
@@ -648,19 +648,20 @@ class Repo:
         by the target branch.
         """
         index: Index = self.load_index()
-        head_blob: Blob = self.load_blob(head_blob_id)
-        target_blob: Blob = self.load_blob(target_blob_id)
+        # head_blob: Blob = self.load_blob(head_blob_id)
+        # target_blob: Blob = self.load_blob(target_blob_id)
         # Check for file at split point
         if filename in split_blobs:
-            split_blob: Blob = self.load_blob(split_blobs[filename])
-            if split_blob != target_blob:  # Modified in target branch.
+            # split_blob: Blob = self.load_blob(split_blobs[filename])
+            split_blob_id: str = split_blobs[filename]
+            if split_blob_id != target_blob_id:  # Modified in target branch.
                 # Not modified in current HEAD -> keep target version.
-                if head_blob == split_blob:
+                if head_blob_id == split_blob_id:
                     index.stage(filename, target_blob_id)
                 # Modified in HEAD -> check for conflict.
-            elif head_blob != target_blob:
-                conflicts.append(filename)
-        elif head_blob != target_blob:  # Not in split commit.
+                elif head_blob_id != target_blob_id:
+                    conflicts.append(filename)
+        elif head_blob_id != target_blob_id:  # Not in split commit.
             conflicts.append(filename)
 
         index.save()
@@ -690,7 +691,6 @@ class Repo:
         middle = "=======\n"
         end = ">>>>>>>\n"
 
-        head_blobs: Dict[str, str] = self.get_blobs(self.head_commit_id)
         target_blobs: Dict[str, str] = self.get_blobs(
             self.get_branch_head(target_branch)
         )
