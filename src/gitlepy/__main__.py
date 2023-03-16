@@ -116,11 +116,7 @@ def commit(repo, message: str) -> None:
 @pass_repo
 def log(repo) -> None:
     """Prints a log of commits beginning from the HEAD."""
-    commit_id = repo.head_commit_id
-    while commit_id != "":
-        commit = repo.load_commit(commit_id)
-        click.echo(commit)
-        commit_id = commit.parent_one
+    repo.log()
 
 
 @main.command()

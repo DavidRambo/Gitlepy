@@ -450,6 +450,13 @@ class Repo:
         # else return None
         return None
 
+    def log(self) -> None:
+        """Returns a log of the current branch's commit history."""
+        history = self._history(self.head_commit_id)
+        for id in history:
+            commit = self.load_commit(id)
+            print(commit)
+
     def status(self) -> str:
         """Returns a string representation of the repository's current status."""
         output: str = ""
