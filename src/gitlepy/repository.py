@@ -48,7 +48,6 @@ class Repo:
         add
         checkout_file
         checkout
-        reset
     """
 
     def __init__(self, repo_path: Path):
@@ -387,11 +386,11 @@ class Repo:
             # Update HEAD to target branch
             self.head.write_text(target)
             # Checkout the head commit for target branch.
-            self._checkout_commit(self.get_branch_head(target))
+            self.checkout_commit(self.get_branch_head(target))
         else:
             print(f"{target} is not a valid branch name.")
 
-    def _checkout_commit(self, target: str) -> None:
+    def checkout_commit(self, target: str) -> None:
         """Checks out the given commit.
 
         Note that this is only ever called by checkout_branch and
@@ -581,7 +580,7 @@ class Repo:
             return True
         if self.head_commit_id in target_history:
             print("Current branch is fast-forwarded.")
-            self._checkout_commit(self.get_branch_head(target_branch))
+            self.checkout_commit(self.get_branch_head(target_branch))
             return True
         return False
 
