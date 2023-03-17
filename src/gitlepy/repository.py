@@ -423,11 +423,11 @@ class Repo:
             print("No commit with that id exists.")
             return
 
-        self._checkout_commit(self.head_commit_id, target_id)
+        self._checkout_commit(self.head_commit_id, target_commit_id)
 
         # Update current branch HEAD to reference checked out commit.
         current_branch_path = Path(self.branches_dir / self.current_branch)
-        current_branch_path.write_text(target_id)
+        current_branch_path.write_text(target_commit_id)
 
     def _checkout_commit(self, old_head_id: str, target_id: str) -> None:
         """Checks out the given commit.
