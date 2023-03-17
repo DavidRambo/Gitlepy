@@ -27,46 +27,22 @@ def test_successful_commit(runner, setup_repo):
     assert result.output == ""
 
 
-def test_head_update():
-    """This test circumvents the click interface in __main__ in order
-    to test the Repo class's own new_commit method.
-    """
+def test_head_update(runner, setup_repo):
+    """Checks that the branch's head is updated."""
     # Initialize
-    repo = Repo(Path.cwd())
-    repo.gitlepy_dir.mkdir()
-    repo.blobs_dir.mkdir()
-    repo.commits_dir.mkdir()
-    repo.branches_dir.mkdir()
-
-    # create staging area
-    repo.index.touch()
-    new_index = Index(repo.index)
-    with open(repo.index, "wb") as file:
-        pickle.dump(new_index, file)
-
-    # Create initial commit.
-    init_commit_id = repo.new_commit("", "Initial commit.")
-    assert init_commit_id == "7c5180a06061453bd4559ea0754fa4f3581d1c91"
-
-    # create a file representing the "main" branch
-    branch = Path(repo.branches_dir / "main")
-    with open(branch, "w") as file:
-        file.write(init_commit_id)
-
-    # create HEAD file and set current branch to "main"
-    repo.head.touch()
-    repo.head.write_text("main")
+    repo = Repo(setup_repo["work_path"])
+    init_commit_id = repo.head_commit_id
+    expected_id = "7c5180a06061453bd4559ea0754fa4f3581d1c91"
+    assert expected_id == init_commit_id
 
     file_a = Path("a.txt")
     file_a.touch()
     file_a.write_text("hi")
-    repo.add("a.txt")
+    runner.invoke(main, ["add", "a.txt"])
 
-    new_head_id = repo.new_commit(repo.head_commit_id, "hi > a.txt")
+    runner.invoke(main, ["commit", "hi > a.txt"])
+    new_head_id = repo.head_commit_id
     assert new_head_id != init_commit_id
-    Path(repo.branches_dir / repo.current_branch).write_text(new_head_id)
-    current_head_id = Path(repo.branches_dir / repo.current_branch).read_text()
-    assert current_head_id == new_head_id
 
 
 def test_log(runner, setup_repo):
