@@ -254,8 +254,7 @@ class Repo:
         if parent == "":  # initial commit can be saved immediately
             with open(c_file, "wb") as f:
                 pickle.dump(c, f)
-            # return c.commit_id
-            Path(self.branches_dir / self.current_branch).write_text(c.commit_id)
+            self.update_branch_head(self.current_branch, c.commit_id)
             return
 
         # Load the index and ensure files are staged for commit.
@@ -269,7 +268,7 @@ class Repo:
 
         # Remove files staged for removal.
         for key in index.removals:
-            del c.blobs[key]
+            c.blobs.pop(key, None)
 
         # Record files staged for addition.
         c.blobs.update(index.additions)
@@ -282,9 +281,13 @@ class Repo:
         with open(c_file, "wb") as f:
             pickle.dump(c, f)
 
-        Path(self.branches_dir / self.current_branch).write_text(c.commit_id)
+        self.update_branch_head(self.current_branch, c.commit_id)
         return
-        # return c.commit_id
+
+    def update_branch_head(self, branch: str, commit_id: str) -> None:
+        """Updates the HEAD reference of the specified branch."""
+        Path(self.branches_dir / branch).write_text(commit_id)
+        return
 
     def add(self, filename: str) -> None:
         """Stages a file in the working directory for addition.
@@ -393,7 +396,7 @@ class Repo:
             return
 
         old_head: str = self.head_commit_id
-        # Update HEAD to target branch
+        # Update HEAD to reference target branch
         self.head.write_text(target)
         # Checkout the head commit for target branch.
         self._checkout_commit(old_head, self.get_branch_head(target))
@@ -438,6 +441,9 @@ class Repo:
             file = Path(self.work_dir / filename)
             blob: Blob = self.load_blob(target_blobs[filename])
             file.write_text(blob.file_contents)
+
+        # Update current branch's HEAD ref
+        self.update_branch_head(self.current_branch, target_id)
 
         # clear the staging area
         index = self.load_index()
