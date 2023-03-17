@@ -80,7 +80,9 @@ def test_merge_self(runner, setup_repo):
 def test_merge_file_change(runner, setup_repo):
     """Fast forwards main to dev."""
     runner.invoke(main, ["checkout", "main"])
-    runner.invoke(main, ["merge", "dev"])
+    merge_result = runner.invoke(main, ["merge", "dev"])
+    merge_expected = "Current branch is fast-forwarded.\n"
+    assert merge_expected == merge_result.output
     file_a = Path(setup_repo["work_path"] / "a.txt")
     expected = "Hello, gitlepy."
     assert file_a.read_text() == expected
@@ -88,11 +90,14 @@ def test_merge_file_change(runner, setup_repo):
 
 def test_merge_head_updated(runner, setup_repo):
     """Fast forwards main to dev and checks the HEAD reference."""
+    old_main_ref = Path(setup_repo["branches"] / "main").read_text()
     dev_ref = Path(setup_repo["branches"] / "dev").read_text()
     runner.invoke(main, ["checkout", "main"])
-    runner.invoke(main, ["merge", "dev"])
-    main_ref = Path(setup_repo["branches"] / "main").read_text()
-    assert main_ref == dev_ref
+    merge_result = runner.invoke(main, ["merge", "dev"])
+    assert "Current branch is fast-forwarded.\n" == merge_result.output
+    new_main_ref = Path(setup_repo["branches"] / "main").read_text()
+    assert old_main_ref != new_main_ref
+    assert new_main_ref == dev_ref
 
 
 def test_merge_ignore_untracked_file(runner, setup_repo):
@@ -115,6 +120,11 @@ def test_merge_file_conflict(runner, setup_repo):
     runner.invoke(main, ["add", "a.txt"])
     runner.invoke(main, ["commit", "Hi > a.txt"])
     result = runner.invoke(main, ["merge", "dev"])
-    print(f"\n>>>>>\n{result.output}<<<<<\n")
     expected = "<<<<<<< HEAD\nHi\n=======\nHello, gitlepy.>>>>>>>\n"
     assert file_a.read_text() == expected
+
+
+# TODO: def test_merge_log(runner, setup_repo):
+#           """Prints the log for a merged branch to test for interlinked
+#           parent commits.
+# """

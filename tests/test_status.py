@@ -208,6 +208,69 @@ def test_status_full(runner, setup_repo):
     assert expected == result.output
 
 
+def test_status_checkout_diff(runner, setup_repo):
+    """Check status with two branches, each tracking different files."""
+    # main branch
+    file_a = Path(setup_repo["work_path"] / "a.txt")
+    file_a.touch()
+    runner.invoke(main, ["branch", "dev"])
+    runner.invoke(main, ["add", "a.txt"])
+    runner.invoke(main, ["commit", "Add a.txt"])
+    assert file_a.exists()
+
+    # dev branch
+    runner.invoke(main, ["checkout", "dev"])
+    assert not file_a.exists()
+    file_b = Path(setup_repo["work_path"] / "b.txt")
+    file_b.write_text("some text in dev branch\n")
+    runner.invoke(main, ["add", "b.txt"])
+    runner.invoke(main, ["commit", "Add b.txt"])
+
+    # main branch
+    runner.invoke(main, ["checkout", "main"])
+    assert not file_b.exists()
+    assert file_a.exists()
+    result = runner.invoke(main, ["status"])
+    expected = _status_helper(
+        branches=["dev", "*main"],
+    )
+    assert expected == result.output  # b.txt should be gone
+
+
+def test_status_after_merge(runner, setup_repo):
+    """Check for clean status after merging two branches.
+    This test features a merge conflict as well as an added file.
+    """
+    # main branch
+    file_a = Path(setup_repo["work_path"] / "a.txt")
+    file_a.write_text("text for a.txt")
+    runner.invoke(main, ["add", "a.txt"])
+    runner.invoke(main, ["commit", "Add a.txt"])
+
+    # dev branch
+    runner.invoke(main, ["branch", "dev"])
+    runner.invoke(main, ["checkout", "dev"])
+    file_a.write_text("dev branch a.txt")
+    file_b = Path(setup_repo["work_path"] / "b.txt")
+    file_b.write_text("some text in dev branch\n")
+    runner.invoke(main, ["add", "a.txt", "b.txt"])
+    runner.invoke(main, ["commit", "Write to a.txt and b.txt"])
+
+    # main branch
+    runner.invoke(main, ["checkout", "main"])
+    file_a.write_text("main branch a.txt")  # prevents fast-forwarding
+    runner.invoke(main, ["add", "a.txt"])
+    runner.invoke(main, ["commit", "Write to a.txt"])
+    r = Repo(Path.cwd())
+    assert r.current_branch == "main"
+    merge_result = runner.invoke(main, ["merge", "dev"])
+    expected = "Encountered a merge conflict.\n"
+    assert expected == merge_result.output
+    status_result = runner.invoke(main, ["status"])
+    expected_status = _status_helper(branches=["dev", "*main"])
+    assert expected_status == status_result.output
+
+
 def _status_helper(
     branches: list[str] = [],
     staged: list[str] = [],

@@ -117,4 +117,5 @@ def test_reset(runner, setup_repo):
 
     # Reset to first commit and ensure b.txt is gone.
     runner.invoke(main, ["reset", commit_a])
+    assert not file_b.exists()
     assert main_ref.read_text() == commit_a
