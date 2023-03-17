@@ -18,10 +18,7 @@ from gitlepy.__main__ import main
 
 def test_main_init_new_repo(runner):
     """Creates a new repository successfully."""
-    # with runner.isolated_filesystem(tmp_path):
-    #     print(f"\n>>>>\n{tmp_path=}\n<<<<<\n")
-    # print(f"\n<<<<\n{Path.cwd()=}\n>>>>>\n")
-    print(f"\n>>>>>>>\n{Path.cwd()}\n<<<<<<<\n")
+    # print(f"\n>>>>>>>\n{Path.cwd()}\n<<<<<<<\n")
     init_result = runner.invoke(main, ["init"])
     assert init_result.exit_code == 0
     init_expected = "Initializing gitlepy repository.\n"
