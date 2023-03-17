@@ -9,7 +9,6 @@ import os.path
 from pathlib import Path
 import pickle
 
-from click.testing import CliRunner
 import pytest
 
 from gitlepy.commit import Commit
@@ -22,7 +21,12 @@ def test_main_init_new_repo(runner):
     # with runner.isolated_filesystem(tmp_path):
     #     print(f"\n>>>>\n{tmp_path=}\n<<<<<\n")
     # print(f"\n<<<<\n{Path.cwd()=}\n>>>>>\n")
-    result = runner.invoke(main, ["init"])
+    print(f"\n>>>>>>>\n{Path.cwd()}\n<<<<<<<\n")
+    init_result = runner.invoke(main, ["init"])
+    assert init_result.exit_code == 0
+    init_expected = "Initializing gitlepy repository.\n"
+    assert init_expected == init_result.output
+
     test_path = Path(Path(os.path.abspath(".")) / ".gitlepy")
     assert test_path.exists()
     assert Path(test_path / "blobs").exists()
@@ -38,8 +42,7 @@ def test_main_init_new_repo(runner):
 
     # Get name of commit object file. There should be only one.
     all_commits = list(Path(test_path / "commits").iterdir())
-    if len(all_commits) != 1:
-        raise Error("There should be one commit object saved.")
+    assert len(all_commits) == 1
     commit_file = all_commits[0]
     # Open it and unpickle it.
     with open(commit_file, "rb") as file:
@@ -57,9 +60,6 @@ def test_main_init_new_repo(runner):
     head_file = Path(test_path / "HEAD")
     assert head_file.exists()
     assert head_file.read_text() == "main"
-
-    assert result.exit_code == 0
-    assert result.output == "Initializing gitlepy repository.\n"
 
 
 def test_main_init_already_exists(runner):

@@ -96,7 +96,7 @@ class Repo:
         return Path(self.branches_dir / self.current_branch).read_text()
 
     def get_branch_head(self, branch: str) -> str:
-        """Returns the commit ID (the head) of the given branch."""
+        """Returns the head commit ID of the given branch."""
         assert branch in self.branches, "Not a valid branch name."
         # Define Path object for the branch reference file.
         p = Path(self.branches_dir / branch)
@@ -241,7 +241,7 @@ class Repo:
 
     def new_commit(
         self, parent: str, message: str, merge_parent: Optional[str] = None
-    ) -> str:
+    ) -> None:
         """Creates a new Commit object and saves to the repostiory.
 
         Args:
@@ -254,7 +254,9 @@ class Repo:
         if parent == "":  # initial commit can be saved immediately
             with open(c_file, "wb") as f:
                 pickle.dump(c, f)
-            return c.commit_id
+            # return c.commit_id
+            Path(self.branches_dir / self.current_branch).write_text(c.commit_id)
+            return
 
         # Load the index and ensure files are staged for commit.
         index = self.load_index()
@@ -280,7 +282,9 @@ class Repo:
         with open(c_file, "wb") as f:
             pickle.dump(c, f)
 
-        return c.commit_id
+        Path(self.branches_dir / self.current_branch).write_text(c.commit_id)
+        return
+        # return c.commit_id
 
     def add(self, filename: str) -> None:
         """Stages a file in the working directory for addition.
@@ -501,9 +505,9 @@ class Repo:
         return output
 
     def merge(self, target: str) -> None:
-        """Merges the current branch with the specified "target" branch.
+        """Merges the current branch with the specified `target` branch.
         It treats the current branch head as the parent commit, and then
-        by comparing files between the split point commit, the HEAD commit,
+        by comparing files between the split-point commit, the HEAD commit,
         and the head of the given branch, it stages files for addition or
         removal before creating a new commit.
         """

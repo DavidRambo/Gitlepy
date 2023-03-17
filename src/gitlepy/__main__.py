@@ -55,6 +55,12 @@ def init(repo) -> None:
     repo.blobs_dir.mkdir()
     repo.commits_dir.mkdir()
     repo.branches_dir.mkdir()
+    # create a file representing the "main" branch
+    Path(repo.branches_dir / "main").touch()
+
+    # create HEAD file and set current branch to "main"
+    repo.head.touch()
+    repo.head.write_text("main")
 
     # create staging area
     repo.index.touch()
@@ -63,16 +69,7 @@ def init(repo) -> None:
         pickle.dump(new_index, file)
 
     # Create initial commit.
-    init_commit_id = repo.new_commit("", "Initial commit.")
-
-    # create a file representing the "main" branch
-    branch = Path(repo.branches_dir / "main")
-    with open(branch, "w") as file:
-        file.write(init_commit_id)
-
-    # create HEAD file and set current branch to "main"
-    repo.head.touch()
-    repo.head.write_text("main")
+    repo.new_commit("", "Initial commit.")
 
     return
 
@@ -108,8 +105,9 @@ def rm(repo, files: Tuple[str]) -> None:
 @pass_repo
 def commit(repo, message: str) -> None:
     """Commit contents in staging area to Gitlepy repository."""
-    new_head_id = repo.new_commit(repo.head_commit_id, message)
-    Path(repo.branches_dir / repo.current_branch).write_text(new_head_id)
+    repo.new_commit(repo.head_commit_id, message)
+    # new_head_id = repo.new_commit(repo.head_commit_id, message)
+    # Path(repo.branches_dir / repo.current_branch).write_text(new_head_id)
 
 
 @main.command()
