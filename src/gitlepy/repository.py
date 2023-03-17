@@ -316,13 +316,13 @@ class Repo:
             # Stage file with blob in the staging area.
             index.stage(filename, new_blob.id)
 
+            # Save the blob.
+            blob_path = Path(self.blobs_dir / new_blob.id)
+            with open(blob_path, "wb") as f:
+                pickle.dump(new_blob, f)
+
         # Save the staging area.
         index.save()
-
-        # Save the blob.
-        blob_path = Path(self.blobs_dir / new_blob.id)
-        with open(blob_path, "wb") as f:
-            pickle.dump(new_blob, f)
 
     def remove(self, filename: str) -> None:
         """If the file is staged for addition, unstages it. Otherwise, if
