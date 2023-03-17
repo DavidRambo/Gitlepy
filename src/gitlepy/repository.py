@@ -395,11 +395,24 @@ class Repo:
             print(f"Already on '{target}'")
             return
 
+        if self._validate_checkout():
+            print("There are unstaged modifications in the way; stage and commit them.")
+            return
+
         old_head: str = self.head_commit_id
         # Update HEAD to reference target branch
         self.head.write_text(target)
         # Checkout the head commit for target branch.
         self._checkout_commit(old_head, self.get_branch_head(target))
+
+    def _validate_checkout(self) -> bool:
+        """Makes sure the working directory allows for checkout.
+        Returns True if there is a problem.
+        """
+        if self.unstaged_modifications:
+            return True
+
+        return False
 
     def reset(self, target_id: str) -> None:
         """Resets the current branch to the specified commit."""
@@ -582,20 +595,20 @@ class Repo:
         history.
 
         In order to accommodate merge commits, which have two parents,
-        this method uses an intermediary queue to interlink divergent
-        branch histories.
+        this method uses a queue to interlink divergent branch histories.
         """
         history = []
         queue = [head_id]
 
         while queue:
-            current_id = queue.pop()
-            history.append(current_id)
-            current_commit: Commit = self.load_commit(current_id)
-            if current_commit.parent_one:
-                queue.append(current_commit.parent_one)
-            if current_commit.parent_two:
-                queue.append(current_commit.parent_two)
+            current_id = queue.pop(0)
+            if current_id not in history:
+                history.append(current_id)
+                current_commit: Commit = self.load_commit(current_id)
+                if current_commit.parent_two:
+                    queue.append(current_commit.parent_two)
+                if current_commit.parent_one:
+                    queue.append(current_commit.parent_one)
 
         return history
 
