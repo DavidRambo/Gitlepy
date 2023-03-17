@@ -29,7 +29,7 @@ def merge_setup(runner, setup_repo):
     runner.invoke(main, ["commit", "Hello > a.txt"])
 
     runner.invoke(main, ["branch", "dev"])  # create branch called dev
-    runner.invoke(main, ["checkout", "dev"])
+    runner.invoke(main, ["checkout", "dev"])  # check out dev
     file_a.write_text("Hello, gitlepy.")
     runner.invoke(main, ["add", "a.txt"])
     runner.invoke(main, ["commit", "Hello, gitlepy > a.txt"])
@@ -129,9 +129,3 @@ def test_merge_file_conflict(runner, setup_repo):
     result = runner.invoke(main, ["merge", "dev"])
     expected = "<<<<<<< HEAD\nHi\n=======\nHello, gitlepy.>>>>>>>\n"
     assert file_a.read_text() == expected
-
-
-# TODO: def test_merge_log(runner, setup_repo):
-#           """Prints the log for a merged branch to test for interlinked
-#           parent commits.
-# """
