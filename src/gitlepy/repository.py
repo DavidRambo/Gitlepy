@@ -3,6 +3,7 @@ Handles the logic for managing a Gitlepy repository.
 All commands from gitlepy.main are dispatched to various functions in this module."""
 from pathlib import Path
 import pickle
+from queue import SimpleQueue
 import sys
 import tempfile
 from typing import Dict
@@ -598,17 +599,18 @@ class Repo:
         this method uses a queue to interlink divergent branch histories.
         """
         history = []
-        queue = [head_id]
+        q: SimpleQueue = SimpleQueue()
+        q.put(head_id)
 
-        while queue:
-            current_id = queue.pop(0)
+        while not q.empty():
+            current_id = q.get()
             if current_id not in history:
                 history.append(current_id)
                 current_commit: Commit = self.load_commit(current_id)
                 if current_commit.parent_two:
-                    queue.append(current_commit.parent_two)
+                    q.put(current_commit.parent_two)
                 if current_commit.parent_one:
-                    queue.append(current_commit.parent_one)
+                    q.put(current_commit.parent_one)
 
         return history
 
