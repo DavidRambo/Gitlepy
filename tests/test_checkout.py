@@ -119,3 +119,58 @@ def test_reset(runner, setup_repo):
     runner.invoke(main, ["reset", commit_a])
     assert not file_b.exists()
     assert main_ref.read_text() == commit_a
+
+
+def test_abbreviated_commit(runner, setup_repo):
+    """Resets to earlier commit using abbreviated id."""
+    # First commit has a.txt
+    file_a = Path(setup_repo["work_path"] / "a.txt")
+    file_a.touch()
+    file_a.write_text("Hello")
+    runner.invoke(main, ["add", "a.txt"])
+    runner.invoke(main, ["commit", "Hello > a.txt"])
+
+    # Retrieve current commit's id
+    main_ref = Path(setup_repo["branches"] / "main")
+    commit_a = main_ref.read_text()
+    # Take a slice of that commit id:
+    abbreviated_a = commit_a[:6]
+    print(f"\n>>>>>\n{commit_a=}\n")
+    print(f"\n{abbreviated_a=}\n<<<<<\n")
+
+    # Make new commit
+    file_b = Path(setup_repo["work_path"] / "b.txt")
+    file_b.touch()
+    file_b.write_text("Hi")
+    runner.invoke(main, ["add", "b.txt"])
+    runner.invoke(main, ["commit", "Hi > b.txt"])
+
+    result = runner.invoke(main, ["reset", abbreviated_a])
+    assert result.exit_code == 0
+    assert main_ref.read_text() == commit_a
+
+
+def test_checkout_file_abbreviated_commit(runner, setup_repo):
+    """Checks out a file from abbreviated commit id."""
+    file_a = Path(setup_repo["work_path"] / "a.txt")
+    file_a.touch()
+    file_a.write_text("Hello")
+    runner.invoke(main, ["add", "a.txt"])
+    runner.invoke(main, ["commit", "Hello > a.txt"])
+
+    # Retrieve current commit' id
+    main_ref = Path(setup_repo["branches"] / "main")
+    commit_a = main_ref.read_text()
+    # Take a slice of that commit id:
+    abbreviated_a = commit_a[:6]
+
+    # Make new commit
+    file_a.write_text("Updated text")
+    runner.invoke(main, ["add", "a.txt"])
+    runner.invoke(main, ["commit", "Updated text > a.txt"])
+
+    result = runner.invoke(main, ["checkout", abbreviated_a, "-f", "a.txt"])
+    assert result.exit_code == 0
+    assert result.output == ""
+
+    assert "Hello" == file_a.read_text()
