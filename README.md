@@ -6,7 +6,7 @@ This is a toy program for practicing Python, especially manipulating the file
 system, managing growing complexity, type annotations, and learning the pytest and click libraries.
 It's a fun project with room to grow—after all, it's a simplified take on git.
 I have adhered closely to the assigned spec of the Gitlet project, and I intend
-to make some further modifications (see [TODOs](# TODOs) below).
+to make some further modifications (see [TODO](#TODO) below).
 
 ## Related projects
 
