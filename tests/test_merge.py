@@ -59,13 +59,13 @@ def test_merge_unstaged_changes(runner, setup_repo):
 def test_merge_nonexistent_branch(runner, setup_repo):
     """Tries to merge with a branch name that does not exist."""
     r = Repo(setup_repo["work_path"])
-    result = r.branches
+    result = r.branches()
     assert len(result) == 2
     assert "main" in result
     assert "dev" in result
-    assert r.current_branch == "dev"
+    assert r.current_branch() == "dev"
     result = runner.invoke(main, ["merge", "invalid"])
-    print(f"\n>>>>\n{r.branches}\n<<<<<")
+    print(f"\n>>>>\n{r.branches()}\n<<<<<")
     expected = "A branch with that name does not exist.\n"
     assert expected == result.output
 
@@ -92,17 +92,17 @@ def test_merge_head_updated(runner, setup_repo):
     """Fast forwards main to dev and checks that the HEAD reference
     for main branch is the same as dev branch."""
     repo = Repo(setup_repo["work_path"])
-    dev_ref = repo.head_commit_id
+    dev_ref = repo.head_commit_id()
 
     # checkout main
     runner.invoke(main, ["checkout", "main"])
-    old_main_ref = repo.head_commit_id
+    old_main_ref = repo.head_commit_id()
     assert dev_ref != old_main_ref
 
     # merge with dev
     merge_result = runner.invoke(main, ["merge", "dev"])
     assert "Current branch is fast-forwarded.\n" == merge_result.output
-    new_main_ref = repo.head_commit_id
+    new_main_ref = repo.head_commit_id()
     assert old_main_ref != new_main_ref
     assert new_main_ref == dev_ref
 

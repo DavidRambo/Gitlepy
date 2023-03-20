@@ -25,7 +25,7 @@ def test_branches_list(runner, setup_repo):
     result = runner.invoke(main, ["branch", "dev"])  # create branch called dev
     # Create instance of Repo class for testing.
     r = repository.Repo(setup_repo["work_path"])
-    result = r.branches
+    result = r.branches()
     assert len(result) == 2
     assert "main" in result
     assert "dev" in result

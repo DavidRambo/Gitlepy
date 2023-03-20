@@ -62,7 +62,6 @@ class Repo:
         self.index: Path = Path(self.gitlepy_dir, "index")
         self.head: Path = Path(self.gitlepy_dir, "HEAD")
 
-    @property
     def branches(self) -> List[str]:
         """Returns a list of branch names."""
         assert (
@@ -74,7 +73,6 @@ class Repo:
             result.append(file.name)
         return result
 
-    @property
     def commits(self) -> List[str]:
         """Returns a list of commit ids."""
         assert (
@@ -86,19 +84,17 @@ class Repo:
             result.append(file.name)
         return result
 
-    @property
     def current_branch(self) -> str:
         """Returns the name of the currently checked out branch."""
         return self.head.read_text()
 
-    @property
     def head_commit_id(self) -> str:
         """Returns the ID of the currrently checked out commit."""
-        return Path(self.branches_dir / self.current_branch).read_text()
+        return Path(self.branches_dir / self.current_branch()).read_text()
 
     def get_branch_head(self, branch: str) -> str:
         """Returns the head commit ID of the given branch."""
-        assert branch in self.branches, "Not a valid branch name."
+        assert branch in self.branches(), "Not a valid branch name."
         # Define Path object for the branch reference file.
         p = Path(self.branches_dir / branch)
         return p.read_text()
@@ -129,7 +125,6 @@ class Repo:
         commit_obj = self.load_commit(commit_id)
         return commit_obj.blobs
 
-    @property
     def working_files(self) -> list[str]:
         """Returns a list of non-hidden files in the working directory."""
         all_paths: list[Path] = list(self.work_dir.glob("*"))
@@ -138,7 +133,6 @@ class Repo:
         ]
         return working_files
 
-    @property
     def untracked_files(self) -> list[str]:
         """Returns a list of files in the working directory that are neither
         tracked by the current commit nor staged for addition; also includes
@@ -147,14 +141,14 @@ class Repo:
         untracked_files: list[str] = []
 
         # Create a set of all tracked or staged files.
-        tracked_files: set = set(self.get_blobs(self.head_commit_id).keys())
+        tracked_files: set = set(self.get_blobs(self.head_commit_id()).keys())
 
         index = self.load_index()
         staged_files: set = set(index.additions.keys())
 
         tracked_files = tracked_files.union(staged_files)
 
-        for file in self.working_files:
+        for file in self.working_files():
             if file not in tracked_files or file in index.removals:
                 untracked_files.append(file)
 
@@ -162,7 +156,6 @@ class Repo:
 
         return untracked_files
 
-    @property
     def unstaged_modifications(self) -> list[str]:
         """Returns a list of tracked files modified but not staged,
         including a parenthetical indication of whether the file has been
@@ -177,8 +170,8 @@ class Repo:
         """
         unstaged_files: list[str] = []
 
-        working_files: list = self.working_files
-        tracked_blobs: dict = self.get_blobs(self.head_commit_id)
+        working_files: list = self.working_files()
+        tracked_blobs: dict = self.get_blobs(self.head_commit_id())
 
         index: Index = self.load_index()
 
@@ -231,7 +224,7 @@ class Repo:
         """Returns True if file differs from tracked version and is not staged."""
         index: Index = self.load_index()
         if filename not in index.additions.keys():
-            tracked_blobs: dict = self.get_blobs(self.head_commit_id)
+            tracked_blobs: dict = self.get_blobs(self.head_commit_id())
             tracked_blob: Blob = self.load_blob(tracked_blobs[filename])
             tracked_contents = tracked_blob.file_contents
             file = Path(self.work_dir / filename)
@@ -255,7 +248,7 @@ class Repo:
         if parent == "":  # initial commit can be saved immediately
             with open(c_file, "wb") as f:
                 pickle.dump(c, f)
-            self.update_branch_head(self.current_branch, c.commit_id)
+            self.update_branch_head(self.current_branch(), c.commit_id)
             return
 
         # Load the index and ensure files are staged for commit.
@@ -282,7 +275,7 @@ class Repo:
         with open(c_file, "wb") as f:
             pickle.dump(c, f)
 
-        self.update_branch_head(self.current_branch, c.commit_id)
+        self.update_branch_head(self.current_branch(), c.commit_id)
         return
 
     def update_branch_head(self, branch: str, commit_id: str) -> None:
@@ -307,7 +300,7 @@ class Repo:
         index = self.load_index()
 
         # Is it unchanged since most recent commit?
-        head_commit = self.load_commit(self.head_commit_id)
+        head_commit = self.load_commit(self.head_commit_id())
         if new_blob.id in head_commit.blobs.keys():
             # Yes -> Do not stage, and remove if already staged.
             if index.is_staged(filename):
@@ -338,7 +331,7 @@ class Repo:
             print("That file is already staged for removal.")
             return
 
-        tracked_files = list(self.get_blobs(self.head_commit_id).keys())
+        tracked_files = list(self.get_blobs(self.head_commit_id()).keys())
 
         if filename in index.additions:
             # Stage for removal and save the index.
@@ -366,7 +359,7 @@ class Repo:
             target : commit from which to check out the file
         """
         if target == "":  # Checkout the file from HEAD.
-            commit = self.load_commit(self.head_commit_id)
+            commit = self.load_commit(self.head_commit_id())
         else:
             commit_id = self._match_commit_id(target)
             if not commit_id:
@@ -389,10 +382,10 @@ class Repo:
 
         target: Name of a branch.
         """
-        if target not in self.branches:  # Validate target is a branch.
+        if target not in self.branches():  # Validate target is a branch.
             print(f"{target} is not a valid branch name.")
         # Don't checkout current branch.
-        if target == self.current_branch:
+        if target == self.current_branch():
             print(f"Already on '{target}'")
             return
 
@@ -400,7 +393,7 @@ class Repo:
             print("There are unstaged modifications in the way; stage and commit them.")
             return
 
-        old_head: str = self.head_commit_id
+        old_head: str = self.head_commit_id()
         # Update HEAD to reference target branch
         self.head.write_text(target)
         # Checkout the head commit for target branch.
@@ -410,7 +403,7 @@ class Repo:
         """Makes sure the working directory allows for checkout.
         Returns True if there is a problem.
         """
-        if self.unstaged_modifications:
+        if self.unstaged_modifications():
             return True
 
         return False
@@ -423,10 +416,10 @@ class Repo:
             print("No commit with that id exists.")
             return
 
-        self._checkout_commit(self.head_commit_id, target_commit_id)
+        self._checkout_commit(self.head_commit_id(), target_commit_id)
 
         # Update current branch HEAD to reference checked out commit.
-        current_branch_path = Path(self.branches_dir / self.current_branch)
+        current_branch_path = Path(self.branches_dir / self.current_branch())
         current_branch_path.write_text(target_commit_id)
 
     def _checkout_commit(self, old_head_id: str, target_id: str) -> None:
@@ -457,7 +450,7 @@ class Repo:
             file.write_text(blob.file_contents)
 
         # Update current branch's HEAD ref
-        self.update_branch_head(self.current_branch, target_id)
+        self.update_branch_head(self.current_branch(), target_id)
 
         # clear the staging area
         index = self.load_index()
@@ -470,12 +463,12 @@ class Repo:
         and try to find a matching commit.
         """
         # if target in commit ids, then return "commit"
-        if target in self.commits:
+        if target in self.commits():
             return target
         # else try to find a match for abbreviate commit id
         elif len(target) < 40:
             matches = []
-            for id in self.commits:
+            for id in self.commits():
                 if id.startswith(target):
                     matches.append(id)
             if len(matches) > 1:
@@ -487,7 +480,7 @@ class Repo:
 
     def log(self) -> None:
         """Returns a log of the current branch's commit history."""
-        history = self._history(self.head_commit_id)
+        history = self._history(self.head_commit_id())
         for id in history:
             commit = self.load_commit(id)
             print(commit)
@@ -497,8 +490,8 @@ class Repo:
         output: str = ""
         # Branches
         output = "=== Branches ===\n"
-        for branch in self.branches:
-            if branch == self.current_branch:
+        for branch in self.branches():
+            if branch == self.current_branch():
                 output += "*"
             output += f"{branch}\n"
 
@@ -515,11 +508,11 @@ class Repo:
 
         # Modifications Not Staged For Commit
         output += "\n=== Modifications Not Staged For Commit ===\n"
-        for file in self.unstaged_modifications:
+        for file in self.unstaged_modifications():
             output += f"{file}\n"
         # Untracked Files
         output += "\n=== Untracked Files ===\n"
-        for file in self.untracked_files:
+        for file in self.untracked_files():
             output += f"{file}\n"
 
         return output
@@ -539,7 +532,7 @@ class Repo:
         target_commit_id = self.get_branch_head(target)
 
         # Get each branch's history and validate.
-        current_history: list = self._history(self.head_commit_id)
+        current_history: list = self._history(self.head_commit_id())
         target_history: list = self._history(target_commit_id)
         if self._validate_history(target_commit_id, current_history, target_history):
             return
@@ -557,8 +550,8 @@ class Repo:
         if conflicts:
             self._merge_conflict(conflicts, target)
         else:
-            merge_message = f"Merged {target} into {self.current_branch}"
-            self.new_commit(self.head_commit_id, merge_message, target_commit_id)
+            merge_message = f"Merged {target} into {self.current_branch()}"
+            self.new_commit(self.head_commit_id(), merge_message, target_commit_id)
 
     def _validate_merge(self, target: str) -> bool:
         """Error checking for merge method. Returns True if invalid.
@@ -568,7 +561,7 @@ class Repo:
         in the way of a merge.
         """
         # Check for unstaged modifications files.
-        if self.unstaged_modifications:
+        if self.unstaged_modifications():
             print(
                 "There is a file with unstaged changes;"
                 + " delete it, or add and commit it first."
@@ -581,11 +574,11 @@ class Repo:
             print("You have uncommitted changes.")
             return True
         # Ensure not already checked out.
-        if target == self.current_branch:
+        if target == self.current_branch():
             print("Cannot merge a branch with itself.")
             return True
         # Check that the specified branch exists.
-        if target not in self.branches:
+        if target not in self.branches():
             print("A branch with that name does not exist.")
             return True
 
@@ -630,9 +623,9 @@ class Repo:
         if target_head in current_history:
             print("Target branch is an ancestor of the current branch.")
             return True
-        if self.head_commit_id in target_history:
+        if self.head_commit_id() in target_history:
             print("Current branch is fast-forwarded.")
-            self._checkout_commit(self.head_commit_id, target_head)
+            self._checkout_commit(self.head_commit_id(), target_head)
             return True
         return False
 
@@ -655,7 +648,7 @@ class Repo:
             split_id: ID of the most recent commont ancestor commit.
         """
         conflicts: list[str] = []
-        head_blobs: Dict[str, str] = self.get_blobs(self.head_commit_id)
+        head_blobs: Dict[str, str] = self.get_blobs(self.head_commit_id())
         target_blobs: Dict[str, str] = self.get_blobs(target_commit_id)
         split_blobs: Dict[str, str] = self.get_blobs(split_id)
 
@@ -764,8 +757,8 @@ class Repo:
 
             self.add(filename)
 
-        merge_message = f"Merged f{self.current_branch} into {target_branch}."
+        merge_message = f"Merged f{self.current_branch()} into {target_branch}."
         self.new_commit(
-            self.head_commit_id, merge_message, self.get_branch_head(target_branch)
+            self.head_commit_id(), merge_message, self.get_branch_head(target_branch)
         )
         print("Encountered a merge conflict.")

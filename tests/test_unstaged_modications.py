@@ -15,7 +15,7 @@ def test_unstaged_modifications(runner, setup_repo):
     runner.invoke(main, ["add", "a.txt"])
     runner.invoke(main, ["commit", "create a.txt"])
     file_a.write_text("Hello")
-    result = r.unstaged_modifications
+    result = r.unstaged_modifications()
     expected = ["a.txt (modified)"]
     assert expected == result
 
@@ -29,6 +29,6 @@ def test_staged_modifications(runner, setup_repo):
     runner.invoke(main, ["commit", "create a.txt"])
     file_a.write_text("Hello")
     runner.invoke(main, ["add", "a.txt"])
-    result = r.unstaged_modifications
+    result = r.unstaged_modifications()
     expected = []
     assert expected == result

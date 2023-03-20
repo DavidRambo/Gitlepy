@@ -31,7 +31,7 @@ def test_head_update(runner, setup_repo):
     """Checks that the branch's head is updated."""
     # Initialize
     repo = Repo(setup_repo["work_path"])
-    init_commit_id = repo.head_commit_id
+    init_commit_id = repo.head_commit_id()
     expected_id = "7c5180a06061453bd4559ea0754fa4f3581d1c91"
     assert expected_id == init_commit_id
 
@@ -41,7 +41,7 @@ def test_head_update(runner, setup_repo):
     runner.invoke(main, ["add", "a.txt"])
 
     runner.invoke(main, ["commit", "hi > a.txt"])
-    new_head_id = repo.head_commit_id
+    new_head_id = repo.head_commit_id()
     assert new_head_id != init_commit_id
 
 

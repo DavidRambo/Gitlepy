@@ -105,8 +105,8 @@ def rm(repo, files: Tuple[str]) -> None:
 @pass_repo
 def commit(repo, message: str) -> None:
     """Commit contents in staging area to Gitlepy repository."""
-    repo.new_commit(repo.head_commit_id, message)
-    # new_head_id = repo.new_commit(repo.head_commit_id, message)
+    repo.new_commit(repo.head_commit_id(), message)
+    # new_head_id = repo.new_commit(repo.head_commit_id(), message)
     # Path(repo.branches_dir / repo.current_branch).write_text(new_head_id)
 
 
@@ -151,14 +151,14 @@ def branch(repo, branchname: str, delete: bool) -> None:
         click.echo("A branch with that name already exists.")
     elif branch_path.exists() and delete:
         # Cannot delete currently checked out branch.
-        if repo.current_branch == branchname:
+        if repo.current_branch() == branchname:
             click.echo("Cannot delete currently checked out branch.")
         else:
             branch_path.unlink()
     elif not branch_path.exists() and not delete:
         branch_path.touch()
         # Write current HEAD commit to new branch.
-        branch_path.write_text(repo.head_commit_id)
+        branch_path.write_text(repo.head_commit_id())
     else:
         click.echo("Cannot delete: No branch with that name exists.")
 
