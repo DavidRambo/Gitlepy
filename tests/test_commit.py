@@ -94,6 +94,6 @@ def test_log(runner, setup_repo):
 
 def get_timestamp(c_path: Path) -> str:
     """Retrieves the timestamp of the Commit object with the given id."""
-    with open(c_path, "rb") as f:
+    with c_path.open("rb") as f:
         c = pickle.load(f)
     return c.timestamp

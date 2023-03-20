@@ -33,7 +33,7 @@ def test_main_init_new_repo(runner):
     assert Path(test_path / "refs").exists()
     assert Path(test_path / "index").exists()
 
-    with open(index_path, "rb") as file:
+    with index_path.open("rb") as file:
         test_index: Index = pickle.load(file)
         assert repr(test_index) == "Index"
 
@@ -42,16 +42,13 @@ def test_main_init_new_repo(runner):
     assert len(all_commits) == 1
     commit_file = all_commits[0]
     # Open it and unpickle it.
-    with open(commit_file, "rb") as file:
-        test_commit: Commit = pickle.load(file)
+    with commit_file.open("rb") as file:
+        test_commit = pickle.load(file)
         assert repr(test_commit) == "Commit"
         assert test_commit.message == "Initial commit."
 
     main_branch = Path(Path(test_path / "refs") / "main")
     assert main_branch.exists()
-    # Ensure main branch references initial commit.
-    # with open(main_branch, "r") as file:
-    #     assert file.readline() == test_commit.commit_id
     assert main_branch.read_text() == test_commit.commit_id
 
     head_file = Path(test_path / "HEAD")

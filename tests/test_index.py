@@ -54,7 +54,7 @@ def test_add(runner, setup_repo):
 
 
 def test_rm_none(runner, setup_repo):
-    """Tries to removae an untracked, unstaged file."""
+    """Tries to remove an untracked, unstaged file."""
     file_a = Path("a.txt")
     file_a.touch()
     assert file_a.exists()

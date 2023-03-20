@@ -102,17 +102,17 @@ class Repo:
     def load_commit(self, commit_id: str) -> Commit:
         """Returns the Commit object with the specified ID."""
         commit_path = Path(self.commits_dir / commit_id)
-        with open(commit_path, "rb") as file:
+        with commit_path.open("rb") as file:
             return pickle.load(file)
 
     def load_index(self) -> Index:
         """Loads the staging area, i.e. the Index object."""
-        with open(self.index, "rb") as file:
+        with self.index.open("rb") as file:
             return pickle.load(file)
 
     def load_blob(self, blob_id: str) -> Blob:
         p = Path(self.blobs_dir / blob_id)
-        with open(p, "rb") as file:
+        with p.open("rb") as file:
             return pickle.load(file)
 
     def get_blobs(self, commit_id: str) -> Dict[str, str]:
@@ -246,7 +246,7 @@ class Repo:
         c_file = Path.joinpath(self.commits_dir, c.commit_id)
 
         if parent == "":  # initial commit can be saved immediately
-            with open(c_file, "wb") as f:
+            with c_file.open("wb") as f:
                 pickle.dump(c, f)
             self.update_branch_head(self.current_branch(), c.commit_id)
             return
@@ -272,7 +272,7 @@ class Repo:
         index.save()
 
         # Save the commit
-        with open(c_file, "wb") as f:
+        with c_file.open("wb") as f:
             pickle.dump(c, f)
 
         self.update_branch_head(self.current_branch(), c.commit_id)
@@ -311,7 +311,7 @@ class Repo:
 
             # Save the blob.
             blob_path = Path(self.blobs_dir / new_blob.id)
-            with open(blob_path, "wb") as f:
+            with blob_path.open("wb") as f:
                 pickle.dump(new_blob, f)
 
         # Save the staging area.
