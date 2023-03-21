@@ -102,6 +102,8 @@ class Repo:
     def load_commit(self, commit_id: str) -> Commit:
         """Returns the Commit object with the specified ID."""
         commit_path = Path(self.commits_dir / commit_id)
+        if not commit_path.exists():
+            raise SystemExit(1, "Commit object does not exist.")
         with commit_path.open("rb") as file:
             return pickle.load(file)
 
