@@ -22,9 +22,22 @@ def test_successful_commit(runner, setup_repo):
     file_a = Path("a.txt")
     file_a.touch()
     file_a.write_text("hello")
-    runner.invoke(main, ["add", "a.txt"])
+    add_result = runner.invoke(main, ["add", "a.txt"])
+    assert add_result.exit_code == 0
+    assert add_result.output == ""
     result = runner.invoke(main, ["commit", "Write hello to a."])
     assert result.output == ""
+
+
+def test_double_add(runner, setup_repo):
+    """Tries to add a file to the staging area that is already staged."""
+    file_a = Path("a.txt")
+    file_a.touch()
+    file_a.write_text("hello")
+    runner.invoke(main, ["add", "a.txt"])
+    add_result = runner.invoke(main, ["add", "a.txt"])
+    assert add_result.exit_code == 0
+    assert add_result.output == "File is already staged in present state.\n"
 
 
 def test_head_update(runner, setup_repo):
@@ -43,6 +56,39 @@ def test_head_update(runner, setup_repo):
     runner.invoke(main, ["commit", "hi > a.txt"])
     new_head_id = repo.head_commit_id()
     assert new_head_id != init_commit_id
+
+
+def test_commit_removals(runner, setup_repo):
+    """Commits a removed file."""
+    file_a = Path("a.txt")
+    file_a.write_text("hi")
+    runner.invoke(main, ["add", "a.txt"])
+    runner.invoke(main, ["commit", "hi > a.txt"])
+
+    runner.invoke(main, ["rm", "a.txt"])
+    result = runner.invoke(main, ["commit", "remove a.txt"])
+    assert result.exit_code == 0
+    assert result.output == ""
+    assert not file_a.exists()
+
+
+def test_commit_add_unchanged(runner, setup_repo):
+    """Tries to stage a file unchanged since previous commit."""
+    file_a = Path("a.txt")
+    file_a.write_text("hi")
+    runner.invoke(main, ["add", "a.txt"])
+    runner.invoke(main, ["commit", "hi > a.txt"])
+    repo = Repo(setup_repo["work_path"])
+    index = repo.load_index()
+    assert not index.additions
+
+    result = runner.invoke(main, ["add", "a.txt"])
+    print(index.additions)
+    assert result.exit_code == 0
+    expected = "No changes have been made to that file.\n"
+    assert result.output == expected
+    index = repo.load_index()
+    assert not index.additions
 
 
 def test_log(runner, setup_repo):

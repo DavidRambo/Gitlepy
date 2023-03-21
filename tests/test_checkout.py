@@ -12,13 +12,17 @@ def test_checkout_no_operands(runner, setup_repo):
 
 def test_checkout_file_invalid_target(runner, setup_repo):
     """Tries to checkout a file from a non-existent commit."""
+    file_a = Path(Path.cwd() / "a.txt")
+    file_a.touch()
+    runner.invoke(main, ["add", "a.txt"])
+    runner.invoke(main, ["commit", "create a.txt"])
     result = runner.invoke(main, ["checkout", "abc56e", "-f", "a.txt"])
     assert result.output == "abc56e is not a valid commit.\n"
 
 
 def test_checkout_file_no_such_file_HEAD(runner, setup_repo):
     """Tries to checkout a file that does not exist in the HEAD."""
-    result = runner.invoke(main, ["checkout", "-fa.txt"])
+    result = runner.invoke(main, ["checkout", "-f", "a.txt"])
     assert result.output == "a.txt is not a valid file.\n"
 
 

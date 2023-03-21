@@ -301,10 +301,22 @@ class Repo:
 
         # Is it unchanged since most recent commit?
         head_commit = self.load_commit(self.head_commit_id())
-        if new_blob.id in head_commit.blobs.keys():
+        if (
+            not filename not in head_commit.blobs.keys()
+            and new_blob.id == head_commit.blobs[filename]
+        ):
             # Yes -> Do not stage, and remove if already staged.
+            print("No changes have been made to that file.")
             if index.is_staged(filename):
                 index.unstage(filename)
+            return
+        # Check whether file is already staged as well as since changed.
+        elif (
+            filename in index.additions.keys()
+            and new_blob.id == index.additions[filename]
+        ):
+            print("File is already staged in present state.")
+            return
         else:
             # Stage file with blob in the staging area.
             index.stage(filename, new_blob.id)
