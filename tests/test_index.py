@@ -112,3 +112,23 @@ def test_rm_already_staged_removal(runner, setup_repo):
     result = runner.invoke(main, ["rm", "a.txt"])
     expected = "That file is already staged for removal.\n"
     assert result.output == expected
+
+
+def test_add_revert_add(runner, setup_repo):
+    """Stages a file, then changes it to original state and adds, which
+    unstages the file.
+    """
+    file_a = Path("a.txt")
+    file_a.write_text("Some text.")
+    runner.invoke(main, ["add", "a.txt"])
+    runner.invoke(main, ["commit", "Add a.txt"])
+
+    file_a.write_text("Different text.")
+    runner.invoke(main, ["add", "a.txt"])
+    file_a.write_text("Some text.")
+    result = runner.invoke(main, ["add", "a.txt"])
+    assert result.exit_code == 0
+    assert result.output == ""
+    repo = Repo(setup_repo["work_path"])
+    index = repo.load_index()
+    assert "a.txt" not in index.additions.keys()
