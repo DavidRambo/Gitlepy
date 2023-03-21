@@ -4,6 +4,7 @@ Tests the commit command.
 """
 from pathlib import Path
 import pickle
+import shutil
 
 from gitlepy.__main__ import main
 from gitlepy.index import Index
@@ -143,3 +144,15 @@ def get_timestamp(c_path: Path) -> str:
     with c_path.open("rb") as f:
         c = pickle.load(f)
     return c.timestamp
+
+
+def test_commit_folder_deleted(runner, setup_repo):
+    """Tries to retrieve the Gitlepy repository's list of commits after
+    deleting the commits directory.
+    """
+    shutil.rmtree(setup_repo["commits_path"])
+    repo = Repo(setup_repo["work_path"])
+    result = runner.invoke(main, ["reset", "abc56e"])
+    assert result.exit_code == 1
+    expected = "Error: Gitlepy's commits directory does not exist.\n"
+    assert expected == result.output

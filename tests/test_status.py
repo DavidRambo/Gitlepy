@@ -10,7 +10,7 @@ from gitlepy.repository import Repo
 
 
 def test_working_files(setup_repo):
-    """Tests Repo.working_files property method."""
+    """Tests Repo.working_files method."""
     repo = Repo(Path.cwd())
     file_a = Path(setup_repo["work_path"] / "a.txt")
     file_a.touch()
@@ -19,7 +19,7 @@ def test_working_files(setup_repo):
 
 
 def test_untracked_files(setup_repo):
-    """Tests Repo.untracked_files property method."""
+    """Tests Repo.untracked_files method."""
     repo = Repo(Path.cwd())
     file_a = Path(setup_repo["work_path"] / "a.txt")
     file_a.touch()
@@ -31,7 +31,7 @@ def test_untracked_files(setup_repo):
 
 
 def test_unstaged_modifications_modified(runner, setup_repo):
-    """Tests Repo.unstaged_modifications property method by modifying a
+    """Tests Repo.unstaged_modifications method by modifying a
     tracked file without staging for addition.
     """
     repo = Repo(Path.cwd())
@@ -46,7 +46,7 @@ def test_unstaged_modifications_modified(runner, setup_repo):
 
 
 def test_unstaged_modifications_deleted(runner, setup_repo):
-    """Tests Repo.unstaged_modifications property method by deleting
+    """Tests Repo.unstaged_modifications method by deleting
     a tracked file without staging for removal.
     """
     repo = Repo(Path.cwd())
@@ -61,7 +61,7 @@ def test_unstaged_modifications_deleted(runner, setup_repo):
 
 
 def test_unstaged_modifications_untracked_staged_modified(runner, setup_repo):
-    """Tests Repo.unstaged_modifications property method by modifying
+    """Tests Repo.unstaged_modifications method by modifying
     an untracked file after it was staged for addition.
     """
     repo = Repo(Path.cwd())
@@ -75,7 +75,7 @@ def test_unstaged_modifications_untracked_staged_modified(runner, setup_repo):
 
 
 def test_unstaged_modifications_tracked_staged_modified(runner, setup_repo):
-    """Tests Repo.unstaged_modifications property method by modifying
+    """Tests Repo.unstaged_modifications method by modifying
     a file tracked by the current commit and already staged for addition.
     """
     repo = Repo(Path.cwd())
@@ -92,7 +92,7 @@ def test_unstaged_modifications_tracked_staged_modified(runner, setup_repo):
 
 
 def test_unstaged_modifications_none(runner, setup_repo):
-    """Tests Repo.unstaged_modifications property method when no modifications
+    """Tests Repo.unstaged_modifications method when no modifications
     are unstaged.
     """
     repo = Repo(Path.cwd())
@@ -107,8 +107,22 @@ def test_unstaged_modifications_none(runner, setup_repo):
     assert expected == result
 
 
+def test_unstaged_modifications_untracked_added_deleted(runner, setup_repo):
+    """Tests Repo.unstaged_modifications method for a staged, untracked file
+    that has since been deleted.
+    """
+    repo = Repo(Path.cwd())
+    file_a = Path(setup_repo["work_path"] / "a.txt")
+    file_a.touch()
+    runner.invoke(main, ["add", "a.txt"])
+    file_a.unlink()
+    result = repo.unstaged_modifications()
+    expected = ["a.txt (deleted)"]
+    assert expected == result
+
+
 def test_unstaged_modifications_removal_readded(runner, setup_repo):
-    """Tests Repo.unstaged_modifications property method by staging a file
+    """Tests Repo.unstaged_modifications method by staging a file
     for removal and then adding it back to the working directory. It is now
     considered to be untracked.
     """

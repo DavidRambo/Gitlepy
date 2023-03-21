@@ -20,6 +20,22 @@ def test_checkout_file_invalid_target(runner, setup_repo):
     assert result.output == "abc56e is not a valid commit.\n"
 
 
+# def test_checkout_no_commit(runner, setup_repo):
+#     """Overwrites the current branch's head reference and tries to check out
+#     a file.
+#     """
+#     file_a = Path(Path.cwd() / "a.txt")
+#     file_a.touch()
+#     runner.invoke(main, ["add", "a.txt"])
+#     runner.invoke(main, ["commit", "create a.txt"])
+#     Path(setup_repo["branches"] / "main").write_text("abc56e")
+#     file_a.write_text("some text")
+#     result = runner.invoke(main, ["checkout", "abc56e", "-f", "a.txt"])
+#     assert result.exit_code == 1
+#     expected = "Commit object does not exist.\n"
+#     assert expected == result.output
+
+
 def test_checkout_file_no_such_file_HEAD(runner, setup_repo):
     """Tries to checkout a file that does not exist in the HEAD."""
     result = runner.invoke(main, ["checkout", "-f", "a.txt"])
@@ -36,6 +52,21 @@ def test_checkout_already_on_branch(runner, setup_repo):
     """Tries to checkout currently checked out branch."""
     result = runner.invoke(main, ["checkout", "main"])
     assert result.output == "Already on 'main'\n"
+
+
+def test_checkout_unstaged(runner, setup_repo):
+    """Tries to checkout with unstaged modifications in the way."""
+    file_a = Path(setup_repo["work_path"] / "a.txt")
+    file_a.touch()
+    runner.invoke(main, ["add", "a.txt"])
+    runner.invoke(main, ["commit", "create a.txt"])
+
+    runner.invoke(main, ["branch", "dev"])
+
+    file_a.write_text("Hello")
+    result = runner.invoke(main, ["checkout", "dev"])
+    expected = "There are unstaged modifications in the way; stage and commit them.\n"
+    assert expected == result.output
 
 
 def test_checkout_new_branch(runner, setup_repo):
@@ -94,7 +125,15 @@ def test_checkout_branch_files(runner, setup_repo):
     assert file_b.read_text() == "Hi"
 
 
-def test_reset(runner, setup_repo):
+def test_reset_no_commit(runner, setup_repo):
+    """Tries to reset to a non-existent commit."""
+    result = runner.invoke(main, ["reset", "abc56e"])
+    assert result.exit_code == 0
+    expected = "No commit with that id exists.\n"
+    assert expected == result.output
+
+
+def test_reset_success(runner, setup_repo):
     """Resets to earlier commit."""
     # First commit has a.txt
     file_a = Path(setup_repo["work_path"] / "a.txt")
@@ -152,6 +191,33 @@ def test_abbreviated_commit(runner, setup_repo):
     result = runner.invoke(main, ["reset", abbreviated_a])
     assert result.exit_code == 0
     assert main_ref.read_text() == commit_a
+
+
+def test_ambiguous_commit_abbreviation(runner, setup_repo):
+    """Copies a commit file with minimal modification to its name so that
+    the abbreviation fails.
+    """
+    file_a = Path(setup_repo["work_path"] / "a.txt")
+    file_a.touch()
+    file_a.write_text("Hello")
+    runner.invoke(main, ["add", "a.txt"])
+    runner.invoke(main, ["commit", "Hello > a.txt"])
+
+    # Retrieve current commit' id
+    main_ref = Path(setup_repo["branches"] / "main")
+    commit_a = main_ref.read_text()
+
+    file_a.write_text("Hello, world.")
+    runner.invoke(main, ["add", "a.txt"])
+    runner.invoke(main, ["commit", "Hello, world. > a.txt"])
+
+    fake_commit = Path(setup_repo["commits_path"] / commit_a[:20])
+    fake_commit.touch()
+
+    result = runner.invoke(main, ["checkout", commit_a[:6], "-f", "a.txt"])
+    assert result.exit_code == 0
+    expected = "Ambiguous commit abbreviation.\n"
+    assert expected == result.output
 
 
 def test_checkout_file_abbreviated_commit(runner, setup_repo):

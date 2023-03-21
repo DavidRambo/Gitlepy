@@ -129,3 +129,36 @@ def test_merge_file_conflict(runner, setup_repo):
     result = runner.invoke(main, ["merge", "dev"])
     expected = "<<<<<<< HEAD\nHi\n=======\nHello, gitlepy.>>>>>>>\n"
     assert file_a.read_text() == expected
+
+
+def test_merge_no_split(runner, setup_repo):
+    """Runs the Repo.merge method with disparate commit histories."""
+    repo = Repo(setup_repo["work_path"])
+
+    # Create a disconnected branch.
+    fake_branch = Path(setup_repo["branches"] / "fake")
+    # Force HEAD file to reference it
+    setup_repo["head"].write_text("fake")
+
+    assert repo.current_branch() == "fake"
+
+    # Create its associated commit object
+    repo.new_commit("", "fake commit")
+
+    result = runner.invoke(main, ["merge", "main"])
+    expected = "No common ancestor found.\n"
+    assert expected == result.output
+
+
+def test_merge_success(runner, setup_repo):
+    """Merges two branches."""
+    runner.invoke(main, ["checkout", "main"])
+    file_b = Path(setup_repo["work_path"] / "b.txt")
+    file_b.write_text("main text")
+    runner.invoke(main, ["add", "b.txt"])
+    runner.invoke(main, ["commit", "main text > b.txt"])
+
+    merge_result = runner.invoke(main, ["merge", "dev"])
+    expected = "Merged dev into main\n"
+    assert merge_result.exit_code == 0
+    assert expected == merge_result.output

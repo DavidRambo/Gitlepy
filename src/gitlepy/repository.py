@@ -4,7 +4,6 @@ All commands from gitlepy.main are dispatched to various functions in this modul
 from pathlib import Path
 import pickle
 from queue import SimpleQueue
-import sys
 import tempfile
 from typing import Dict
 from typing import List
@@ -75,9 +74,9 @@ class Repo:
 
     def commits(self) -> List[str]:
         """Returns a list of commit ids."""
-        assert (
-            self.commits_dir.exists()
-        ), "Error: Gitlepy's commits directory does not exist."
+        if not self.commits_dir.exists():
+            print("Error: Gitlepy's commits directory does not exist.")
+            raise SystemExit(1)
         path_list = list(self.commits_dir.glob("*"))
         result = []
         for file in path_list:
@@ -257,7 +256,7 @@ class Repo:
         index = self.load_index()
         if not index.additions and not index.removals:
             print("No changes staged for commit.")
-            sys.exit(0)
+            raise SystemExit(0)
 
         # Begin with parent commit's blobs
         c.blobs = self.get_blobs(parent)
@@ -402,7 +401,7 @@ class Repo:
             print(f"Already on '{target}'")
             return
 
-        if self._validate_checkout():
+        if self.unstaged_modifications():
             print("There are unstaged modifications in the way; stage and commit them.")
             return
 
@@ -411,15 +410,6 @@ class Repo:
         self.head.write_text(target)
         # Checkout the head commit for target branch.
         self._checkout_commit(old_head, self.get_branch_head(target))
-
-    def _validate_checkout(self) -> bool:
-        """Makes sure the working directory allows for checkout.
-        Returns True if there is a problem.
-        """
-        if self.unstaged_modifications():
-            return True
-
-        return False
 
     def reset(self, target_id: str) -> None:
         """Resets the current branch to the specified commit."""
@@ -486,9 +476,9 @@ class Repo:
                     matches.append(id)
             if len(matches) > 1:
                 print("Ambiguous commit abbreviation.")
+                raise SystemExit(0)
             elif len(matches) == 1:
                 return matches[0]
-        # else return None
         return None
 
     def log(self) -> None:
@@ -565,6 +555,7 @@ class Repo:
         else:
             merge_message = f"Merged {target} into {self.current_branch()}"
             self.new_commit(self.head_commit_id(), merge_message, target_commit_id)
+            print(merge_message)
 
     def _validate_merge(self, target: str) -> bool:
         """Error checking for merge method. Returns True if invalid.
