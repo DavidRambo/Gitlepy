@@ -5,6 +5,7 @@ from filecmp import cmp
 from pathlib import Path
 import pickle
 from queue import SimpleQueue
+import shutil
 import tempfile
 from typing import Dict
 from typing import List
@@ -757,14 +758,14 @@ class Repo:
             head_file = Path(self.work_dir / filename)
             target_blob = Path(self.blobs_dir / target_blobs[filename])
 
-            with tempfile.SpooledTemporaryFile(mode="w+t") as temp:
+            with tempfile.NamedTemporaryFile(mode="w+t") as temp:
                 temp.write(start)
                 temp.write(head_file.read_text())
                 temp.write(middle)
                 temp.write(target_blob.read_text())
                 temp.write(end)
                 temp.seek(0)
-                head_file.write_text(temp.read())
+                shutil.copy(temp.name, head_file)
 
             self.add(filename)
 
