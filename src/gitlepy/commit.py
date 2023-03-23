@@ -3,11 +3,8 @@ Represents a Gitlepy repository's commit object.
 """
 from datetime import datetime
 from hashlib import sha1
-from pathlib import Path
 from typing import Dict
 from typing import Optional
-
-from gitlepy.index import Index
 
 
 class Commit:
