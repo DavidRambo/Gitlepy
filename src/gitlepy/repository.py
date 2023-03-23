@@ -1,6 +1,7 @@
 """Repository module for Gitlepy.
 Handles the logic for managing a Gitlepy repository.
 All commands from gitlepy.main are dispatched to various functions in this module."""
+from filecmp import cmp
 from pathlib import Path
 import pickle
 from queue import SimpleQueue
@@ -171,68 +172,78 @@ class Repo:
         """
         unstaged_files: list[str] = []
 
-        working_files: list = self.working_files()
-        tracked_blobs: dict = self.get_blobs(self.head_commit_id())
+        working_files: list[str] = self.working_files()
+        tracked_blobs: dict[str, str] = self.get_blobs(self.head_commit_id())
 
         index: Index = self.load_index()
 
         for filename in tracked_blobs.keys():
             # File was deleted but not staged for removal
-            if filename not in working_files and filename not in index.removals:
+            if self._unstaged_deletion(filename, working_files, index):
                 unstaged_files.append(f"{filename} (deleted)")
-                continue
 
             # File exists
-            if filename in working_files:
-                # First compare with staged file
-                if self._modified_since_staged(filename):
+            elif filename in working_files:
+                # First compare with staged file.
+                if self._diff_from_staged(filename, index):
                     unstaged_files.append(f"{filename} (modified)")
-                    continue
-                # Then compare with tracked content
-                elif self._diff_from_tracked(filename):
+                # Then compare with unstaged tracked content.
+                elif self._unstaged_tracked_modification(
+                    filename, index, tracked_blobs
+                ):
                     unstaged_files.append(f"{filename} (modified)")
-                    continue
 
-        # Check untracked files staged for addition.
-        for filename in index.additions.keys():
-            if filename not in tracked_blobs.keys():
-                if filename not in working_files:
-                    unstaged_files.append(f"{filename} (deleted)")
-                else:
-                    staged_blob: Blob = self.load_blob(index.additions[filename])
-                    staged_contents = staged_blob.file_contents
-                    file = Path(self.work_dir / filename)
-                    current_contents = file.read_text()
-                    if current_contents != staged_contents:
-                        unstaged_files.append(f"{filename} (modified)")
+        # Check files staged for addition and untracked.
+        for filename in index.additions.keys() - tracked_blobs.keys():
+            if filename not in working_files:
+                unstaged_files.append(f"{filename} (deleted)")
+            elif not self._cmp_blobs(filename, index.additions[filename]):
+                unstaged_files.append(f"{filename} (modified)")
 
         unstaged_files.sort()
         return unstaged_files
 
-    def _modified_since_staged(self, filename: str) -> bool:
-        """Returns True if file has been modified since staged."""
-        index: Index = self.load_index()
-        if filename in index.additions:
-            staged_blob: Blob = self.load_blob(index.additions[filename])
-            staged_contents = staged_blob.file_contents
-            file = Path(self.work_dir / filename)
-            current_contents = file.read_text()
-            if current_contents != staged_contents:
-                return True
-        return False
+    def _unstaged_deletion(
+        self, filename, working_files: list[str], index: Index
+    ) -> bool:
+        """Returns True if the file specified by filename has been deleted but
+        not staged for removal.
+        """
+        return filename not in working_files and filename not in index.removals
 
-    def _diff_from_tracked(self, filename: str) -> bool:
-        """Returns True if file differs from tracked version and is not staged."""
-        index: Index = self.load_index()
+    def _diff_from_staged(self, filename: str, index: Index) -> bool:
+        """Returns True if the file specified by filename has been modified
+        since being staged for addition.
+        """
+        try:
+            return not self._cmp_blobs(filename, index.additions[filename])
+        except KeyError:
+            return False
+
+    def _unstaged_tracked_modification(
+        self, filename: str, index: Index, tracked_blobs: dict[str, str]
+    ) -> bool:
+        """Returns True if the file is tracked, not staged for addition, and
+        has been modified.
+        """
         if filename not in index.additions.keys():
-            tracked_blobs: dict = self.get_blobs(self.head_commit_id())
-            tracked_blob: Blob = self.load_blob(tracked_blobs[filename])
-            tracked_contents = tracked_blob.file_contents
-            file = Path(self.work_dir / filename)
-            current_contents = file.read_text()
-            if current_contents != tracked_contents:
-                return True
-        return False
+            return not self._cmp_blobs(filename, tracked_blobs[filename])
+        else:
+            return False
+
+    def _cmp_blobs(self, filename: str, blob_id: str) -> bool:
+        """Returns true if the file and its corresponding blob are the same.
+
+        This method wraps filecmp.cmp(f1, f2[, shallow=True]) and only adds
+        the path to the specified file names before passing them to filecmp.cmp.
+
+        Args:
+            filename: Name of the file in the working directory.
+            blob_id: Name of the blob file in the blobs directory.
+        """
+        file = Path(self.work_dir / filename)
+        blob = Path(self.blobs_dir / blob_id)
+        return cmp(file, blob)
 
     def new_commit(
         self, parent: str, message: str, merge_parent: Optional[str] = None
@@ -324,7 +335,7 @@ class Repo:
             # Save the blob.
             blob_path = Path(self.blobs_dir / new_blob.id)
             with blob_path.open("wb") as f:
-                pickle.dump(new_blob, f)
+                f.write(filepath.read_bytes())
 
         # Save the staging area.
         index.save()
@@ -386,8 +397,8 @@ class Repo:
             # Path for file in working directory
             filepath = Path(self.work_dir / filename)
             # Path for the blob
-            blob = self.load_blob(commit.blobs[filename])
-            filepath.write_text(blob.file_contents)
+            blob = Path(self.blobs_dir / commit.blobs[filename])
+            filepath.write_text(blob.read_text())
 
     def checkout_branch(self, target: str) -> None:
         """Checks out the given branch.
@@ -449,8 +460,9 @@ class Repo:
         # Load file contents from blobs.
         for filename in target_blobs.keys():
             file = Path(self.work_dir / filename)
-            blob: Blob = self.load_blob(target_blobs[filename])
-            file.write_text(blob.file_contents)
+            blob = Path(self.blobs_dir / target_blobs[filename])
+            file.write_text(blob.read_text())
+            # with open(file, "wt") as f, open(blob, "rb") as b:
 
         # Update current branch's HEAD ref
         self.update_branch_head(self.current_branch(), target_id)
@@ -657,7 +669,7 @@ class Repo:
         split_blobs: Dict[str, str] = self.get_blobs(split_id)
 
         for filename in head_blobs:
-            head_blob: Blob = self.load_blob(head_blobs[filename])
+            head_blob = head_blobs[filename]
 
             if filename in target_blobs:  # file tracked by target branch
                 self._merge_head_target(
@@ -670,7 +682,7 @@ class Repo:
             elif filename in split_blobs:
                 # Not in target branch and present at split means
                 # removed from target branch.
-                split_blob: Blob = self.load_blob(split_blobs[filename])
+                split_blob = split_blobs[filename]
                 # If unmodified in HEAD since split, then remove.
                 if head_blob == split_blob:
                     index: Index = self.load_index()
@@ -698,11 +710,8 @@ class Repo:
         by both the current branch and the target branch.
         """
         index: Index = self.load_index()
-        # head_blob: Blob = self.load_blob(head_blob_id)
-        # target_blob: Blob = self.load_blob(target_blob_id)
         # Check for file at split point
         if filename in split_blobs:
-            # split_blob: Blob = self.load_blob(split_blobs[filename])
             split_blob_id: str = split_blobs[filename]
             if split_blob_id != target_blob_id:  # Modified in target branch.
                 # Not modified in current HEAD -> keep target version.
@@ -747,14 +756,13 @@ class Repo:
 
         for filename in conflicts:
             head_file = Path(self.work_dir / filename)
-            # head_blob: Blob = self.load_blob(head_blobs[filename])
-            target_blob: Blob = self.load_blob(target_blobs[filename])
+            target_blob = Path(self.blobs_dir / target_blobs[filename])
 
             with tempfile.SpooledTemporaryFile(mode="w+t") as temp:
                 temp.write(start)
                 temp.write(head_file.read_text())
                 temp.write(middle)
-                temp.write(target_blob.file_contents)
+                temp.write(target_blob.read_text())
                 temp.write(end)
                 temp.seek(0)
                 head_file.write_text(temp.read())
