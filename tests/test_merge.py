@@ -14,8 +14,8 @@ from gitlepy.repository import Repo
 def merge_setup(runner, setup_repo):
     """Basic multi-branch setup for merge tests.
 
-    Leaves the gitlepy repository in the following state, with a clean
-    working directory:
+    Leaves the gitlepy repository in the following state, with a working
+    directory clear of unstaged modifications:
     === Branches ===
     *dev
     main
@@ -127,6 +127,8 @@ def test_merge_file_conflict(runner, setup_repo):
     runner.invoke(main, ["add", "a.txt"])
     runner.invoke(main, ["commit", "Hi > a.txt"])
     result = runner.invoke(main, ["merge", "dev"])
+    assert result.exit_code == 0
+    assert result.output == "Encountered a merge conflict.\n"
     expected = "<<<<<<< HEAD\nHi\n=======\nHello, gitlepy.>>>>>>>\n"
     assert file_a.read_text() == expected
 
