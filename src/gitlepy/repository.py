@@ -717,13 +717,12 @@ class Repo:
                 # Not modified in current HEAD -> keep target version.
                 if head_blob_id == split_blob_id:
                     index.stage(filename, target_blob_id)
+                    index.save()
                 # Modified in HEAD -> check for conflict.
                 elif head_blob_id != target_blob_id:
                     conflicts.append(filename)
         elif head_blob_id != target_blob_id:  # Not in split commit.
             conflicts.append(filename)
-
-        index.save()
 
     def _merge_target_blobs(
         self,
