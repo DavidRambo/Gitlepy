@@ -24,8 +24,6 @@ class Blob:
         Args:
             filename: Name of the file to be recorded as a blob.
         """
-        self.file_contents = filepath.read_text()
-
         sha = sha1()
         BUF_SIZE: int = 64 * 1024  # 65_536
         mv = memoryview(bytearray(BUF_SIZE))
