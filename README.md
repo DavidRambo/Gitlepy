@@ -51,7 +51,7 @@ pytest
 Assuming you have installed the package into your environment, you can call gitlepy
 to initialize a new gitlepy repository as follows:
 ```
-$> gitlepy init
+$ gitlepy init
 ```
 
 ## Commands
@@ -74,20 +74,20 @@ Gitlepy has some basic version control commands:
 
 Adding and committing files:
 ```
-$> touch a.txt b.txt
-$> gitlepy add a.txt b.txt
-$> gitlepy commit "Create a.txt and b.txt"
+$ touch a.txt b.txt
+$ gitlepy add a.txt b.txt
+$ gitlepy commit "Create a.txt and b.txt"
 ```
 Branches:
 ```
-$> gitlepy branch dev
-$> gitlepy checkout dev
+$ gitlepy branch dev
+$ gitlepy checkout dev
 ```
 (Do some work and return to `main` branch.)
 ```
-$> gitlepy checkout main
-$> gitlepy merge dev  # merge main with dev
-$> gitlepy branch -d dev  # delete dev branch
+$ gitlepy checkout main
+$ gitlepy merge dev  # merge main with dev
+$ gitlepy branch -d dev  # delete dev branch
 ```
 
 # Organization
@@ -111,6 +111,13 @@ The [`Repo` class](src/gitlepy/repository.py) handles nearly all of the logic.
 
 # TODO
 
+## Enable support for nested working directory and hidden files
+Currently, gitlepy only works with non-hidden files in a flat directory.
+To support hidden files, the glob() pattern used to ignore certain files will need to be
+replaced with a list of files to be ignored (the .gitlepy directory, by default).
+Supporting a .gitlepyignore file shouldn't be much more work.
+Supporting a nested working tree would require refactoring the code that searches the working directory.
+
 ## Refactor merge methods
 Currently, `Repo.merge()` uses nested conditional blocks to determine the outcome of
 a merge. While using helper methods keeps it fairly approachable,
@@ -118,8 +125,3 @@ I would like to convert it to use sets.
 Once the sets of various possible file states are composed,
 basic set comparison operations would make for an elegant merge.
 
-## Convert Blob.file_contents to bytes
-Currently, I follow the Gitlet spec, which uses straight string representations
-of file contents. However, I would like to convert this to use bytes in order
-to make use of Python's memoryview object and chunking. I do this with the sha1
-hash of the Blob.
