@@ -21,7 +21,7 @@ def merge_setup(runner, setup_repo):
     main
 
     main's a.txt = "Hello"
-    dev's a.txt = "Hello, gitlepy."
+    dev's a.txt = "Hello, gitlepy.\n"
     """
     file_a = Path(setup_repo["work_path"] / "a.txt")
     file_a.write_text("Hello")
@@ -30,7 +30,7 @@ def merge_setup(runner, setup_repo):
 
     runner.invoke(main, ["branch", "dev"])  # create branch called dev
     runner.invoke(main, ["checkout", "dev"])  # check out dev
-    file_a.write_text("Hello, gitlepy.")
+    file_a.write_text("Hello, gitlepy.\n")
     runner.invoke(main, ["add", "a.txt"])
     runner.invoke(main, ["commit", "Hello, gitlepy > a.txt"])
 
@@ -84,7 +84,7 @@ def test_merge_file_change(runner, setup_repo):
     merge_expected = "Current branch is fast-forwarded.\n"
     assert merge_expected == merge_result.output
     file_a = Path(setup_repo["work_path"] / "a.txt")
-    expected = "Hello, gitlepy."
+    expected = "Hello, gitlepy.\n"
     assert file_a.read_text() == expected
 
 
@@ -120,17 +120,33 @@ def test_merge_ignore_untracked_file(runner, setup_repo):
 
 
 def test_merge_file_conflict(runner, setup_repo):
-    """Merges a file with a conflict."""
+    """Merges a file with a conflict.
+
+    Checks out main and modifies a.txt to contain 'Hi'.
+    Adds and commits the change, then merges with dev branch.
+    a.txt should contain:
+        <<<<<<< HEAD
+        Hi
+        =======
+        Hello, gitlepy.
+        >>>>>>> {head_dev_commit_id}
+    """
+    repo = Repo(setup_repo["work_path"])
+    head_dev_commit_id = repo.head_commit_id()
+    assert Path(setup_repo["work_path"] / "a.txt").read_text() == "Hello, gitlepy.\n"
     runner.invoke(main, ["checkout", "main"])
     file_a = Path(setup_repo["work_path"] / "a.txt")
     file_a.write_text("Hi\n")
     runner.invoke(main, ["add", "a.txt"])
     runner.invoke(main, ["commit", "Hi > a.txt"])
+    assert Path(setup_repo["work_path"] / "a.txt").read_text() == "Hi\n"
     result = runner.invoke(main, ["merge", "dev"])
     assert result.exit_code == 0
     assert result.output == "Encountered a merge conflict.\n"
-    expected = "<<<<<<< HEAD\nHi\n=======\nHello, gitlepy.>>>>>>>\n"
-    assert file_a.read_text() == expected
+    expected = (
+        f"<<<<<<< HEAD\nHi\n=======\nHello, gitlepy.\n>>>>>>> {head_dev_commit_id}\n"
+    )
+    assert expected == file_a.read_text()
 
 
 def test_merge_no_split(runner, setup_repo):
