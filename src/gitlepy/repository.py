@@ -5,6 +5,7 @@ from filecmp import cmp
 from pathlib import Path
 import pickle
 from queue import SimpleQueue
+from os import remove
 import shutil
 import tempfile
 from typing import Dict
@@ -746,10 +747,6 @@ class Repo:
         """Resolves files in conflict by concatenating the two, stages them,
         and then creates a merge commit.
         """
-        start = "<<<<<<< HEAD\n"
-        middle = "=======\n"
-        end = ">>>>>>>\n"
-
         target_blobs: Dict[str, str] = self.get_blobs(
             self.get_branch_head(target_branch)
         )
@@ -758,19 +755,169 @@ class Repo:
             head_file = Path(self.work_dir / filename)
             target_blob = Path(self.blobs_dir / target_blobs[filename])
 
-            with tempfile.NamedTemporaryFile(mode="w+t") as temp:
-                temp.write(start)
-                temp.write(head_file.read_text())
-                temp.write(middle)
-                temp.write(target_blob.read_text())
-                temp.write(end)
-                temp.seek(0)
-                shutil.copy(temp.name, head_file)
+            self._write_conflict(
+                head_file, target_blob, self.get_branch_head(target_branch)
+            )
 
             self.add(filename)
 
-        merge_message = f"Merged f{self.current_branch()} into {target_branch}."
+        merge_message = f"Merged {self.current_branch()} into {target_branch}."
         self.new_commit(
             self.head_commit_id(), merge_message, self.get_branch_head(target_branch)
         )
         print("Encountered a merge conflict.")
+
+    def _write_conflict(self, head_file: Path, target_blob: Path, commit_id: str):
+        """Combines two files in conflict, writing to head_file.
+
+        With the head file as f1 and target file as f2:
+        0. Both line1 and line2 exist:
+        1. line1 == line2 -> copy as is
+        2. line1 != line2
+            ->  scan file_2 for matching line
+                2a. match found -> insertion: insert lines from file_2 until match
+                2b. no match -> Still could be a match in file_2 with remaining
+                                file_1 lines.
+                2b1. later match -> Start HEAD diff section, copy file_1 lines up
+                                   to matching line_1. Mid diff. Repeat for file_2
+                                   lines. Loop back to top, which will copy matched
+                                   lines.
+                2b2. never match -> Start HEAD diff section, copy remaining lines
+                                    from file_1, then split diff to remaining
+                                    lines in file_2, conclude with end of diff.
+
+        Clean up remaining lines:
+            1. If from file_1, then simply copy over.
+            2. If from file_2, then add an empty HEAD diff section before copying.
+        """
+        start_diff = "<<<<<<< HEAD\n"
+        mid_diff = "=======\n"
+        end_diff = f">>>>>>> {commit_id}\n"
+
+        with head_file.open() as f1, target_blob.open() as f2, tempfile.NamedTemporaryFile(
+            mode="w+t", delete=False
+        ) as temp:
+            seek1 = f1.tell()  # starting positions
+            seek2 = f2.tell()
+            line1 = f1.readline()  # first lines
+            line2 = f2.readline()
+
+            while line1 and line2:
+                if line1 == line2:
+                    temp.write(line1)
+                else:  # Scan f2 for later match to line1
+                    skip = False  # For breaking out of top while loop
+                    while line2:
+                        line2 = f2.readline()
+                        if line1 == line2:
+                            # Match found -> insert lines from f2 until match.
+                            # First reset f2 to non-matching position.
+                            f2.seek(seek2)
+                            line2 = f2.readline()
+                            # Diff section for new f2 lines.
+                            temp.write(start_diff)
+                            temp.write(mid_diff)
+                            while line1 != line2:
+                                temp.write(line2)
+                                line2 = f2.readline()
+                            temp.write(end_diff)
+                            # Back to line1 == line2
+                            # Continue and let top of loop handle matching lines.
+                            skip = True
+                            break
+                    if skip:
+                        skip = False
+                        continue
+
+                    # No match to line1 found later in f2, check rest of f1 for
+                    # match with any remaining line in f2.
+                    f2.seek(seek2)  # First, reset f2 to previous position.
+                    line2 = f2.readline()
+                    match_byte = self._binsearch_lines(f1, f2)
+
+                    if match_byte > 0:  # Match in f1 found for line2.
+                        f1.seek(seek1)  # Reset position of f1.
+                        temp.write(start_diff)
+                        temp.write(f1.read(match_byte - seek1))  # copy up to match
+                        temp.write(mid_diff)
+                        # Get matching line from f1.
+                        seek1 = f1.tell()
+                        line1 = f1.readline()
+                        # Copy from f2 up to match.
+                        while line1 != line2:
+                            temp.write(line2)
+                            seek2 = f2.tell()
+                            line2 = f2.readline()
+                        temp.write(end_diff)
+                        # Back to line1 == line2
+                        continue
+                    else:  # No more matching lines. Finish diff.
+                        temp.write(start_diff)
+                        f1.seek(seek1)
+                        f2.seek(seek2)
+                        temp.write(f1.read())
+                        temp.write(mid_diff)
+                        temp.write(f2.read())
+                        temp.write(end_diff)
+                        # Advance lines so avoid extraneous writing.
+                        line1 = f1.readline()
+                        line2 = f2.readline()
+                        break
+
+                # Advance to next line, recording its starting position.
+                seek1 = f1.tell()
+                seek2 = f2.tell()
+                line1 = f1.readline()
+                line2 = f2.readline()
+
+            # Outside of main while loop.
+            # Include trailing lines if any remain.
+            if line1:
+                temp.write(line1)
+                while line1:
+                    line1 = f1.readline()
+                    temp.write(line1)
+            elif line2:
+                temp.write(start_diff)
+                temp.write(mid_diff)
+                temp.write(line2)
+                while line2:
+                    line2 = f1.readline()
+                    temp.write(line2)
+                temp.write(end_diff)
+
+        shutil.copy(temp.name, head_file)
+        remove(temp.name)
+
+    def _binsearch_lines(self, f1, f2) -> int:
+        """Returns the byte location of a matching line in f1 if it exists."""
+        # Sort remaining lines in file 2.
+        seek2 = f2.tell()
+        sorted_f2 = sorted(f2.readlines())  # sort remaining lines in f2
+        f2.seek(seek2)  # reset position of f2
+
+        # Iterate over remainig lines in file 1, searching for match in file 2.
+        seek1 = f1.tell()
+        line = f1.readline()
+        while line:
+            # When a match is found, return the byte position of the f1 line.
+            if self._binsearch(line, sorted_f2):
+                return seek1
+            seek1 = f1.tell()
+            line = f1.readline()
+
+        return 0
+
+    def _binsearch(self, line: str, all_lines: list[str]) -> bool:
+        """Helper function for binsearch_lines."""
+        if len(all_lines) - 1 >= 0:
+            mid: int = (len(all_lines) - 1) // 2
+
+            if line == all_lines[mid]:
+                return True
+            elif line < all_lines[mid]:
+                return self._binsearch(line, all_lines[:mid])
+            elif line > all_lines[mid]:
+                return self._binsearch(line, all_lines[mid + 1 :])
+
+        return False
