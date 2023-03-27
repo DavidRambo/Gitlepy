@@ -3,7 +3,6 @@ determining untracked and modified files.
 """
 from pathlib import Path
 
-import pytest
 
 from gitlepy.__main__ import main
 from gitlepy.repository import Repo

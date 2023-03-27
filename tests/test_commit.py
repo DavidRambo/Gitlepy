@@ -7,7 +7,6 @@ import pickle
 import shutil
 
 from gitlepy.__main__ import main
-from gitlepy.index import Index
 from gitlepy.repository import Repo
 
 
@@ -151,7 +150,6 @@ def test_commit_folder_deleted(runner, setup_repo):
     deleting the commits directory.
     """
     shutil.rmtree(setup_repo["commits_path"])
-    repo = Repo(setup_repo["work_path"])
     result = runner.invoke(main, ["reset", "abc56e"])
     assert result.exit_code == 1
     expected = "Error: Gitlepy's commits directory does not exist.\n"

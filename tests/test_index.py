@@ -3,7 +3,6 @@
 from pathlib import Path
 import pickle
 
-import pytest
 
 from gitlepy.__main__ import main
 from gitlepy.index import Index

@@ -1,6 +1,5 @@
 # tests/test_main.py
 """Tests the main.py module."""
-from click.testing import CliRunner
 import pytest
 
 from gitlepy.__main__ import main

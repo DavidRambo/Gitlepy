@@ -154,7 +154,7 @@ def test_merge_no_split(runner, setup_repo):
     repo = Repo(setup_repo["work_path"])
 
     # Create a disconnected branch.
-    fake_branch = Path(setup_repo["branches"] / "fake")
+    Path(setup_repo["branches"] / "fake")
     # Force HEAD file to reference it
     setup_repo["head"].write_text("fake")
 

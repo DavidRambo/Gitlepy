@@ -9,9 +9,7 @@ import os.path
 from pathlib import Path
 import pickle
 
-import pytest
 
-from gitlepy.commit import Commit
 from gitlepy.index import Index
 from gitlepy.__main__ import main
 
