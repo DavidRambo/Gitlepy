@@ -6,7 +6,7 @@ import os.path
 import sys
 from typing import Tuple
 
-import click
+import rich_click as click
 
 from gitlepy.index import Index
 from gitlepy.repository import Repo
@@ -122,12 +122,8 @@ def log(repo) -> None:
 def status(repo) -> None:
     """Displays the status of the gitlepy repo.
 
-    It prints lists of:
-        - branches, marking the current with an asterisk,
-        - staged files,
-        - removed files,
-        - modifications not staged for commit,
-        - untracked files.
+    It prints lists of: branches, marking the current with an asterisk; staged
+    files; removed files; modifications not staged for commit; untracked files.
     """
     click.echo(repo.status())
 
@@ -178,10 +174,10 @@ def checkout(repo, target, filename):
     """Checkout a branch or a file from a commit.
 
     This command accepts five usages:\n
-        gitlepy checkout -f <file name> : checks out the given file from the HEAD commit\n
-        gitlepy checkout <commit id> -f <file name> : checks out the given file from
+        \tgitlepy checkout -f <file name> : checks out the given file from the HEAD commit\n
+        \tgitlepy checkout <commit id> -f <file name> : checks out the given file from
             the given commit\n
-        gitlepy checkout <branch name> : checks out the given branch\n
+        \tgitlepy checkout <branch name> : checks out the given branch\n
             the given branch\n
     """
     # Parse arguments
@@ -199,8 +195,8 @@ def checkout(repo, target, filename):
 def reset(repo, target: str):
     """Reset the working directory to target commit.
 
-    Usage:
-        gitlepy reset <commit id>\n
+    Usage:\n
+        \tgitlepy reset <commit id>\n
     """
     repo.reset(target)
 
