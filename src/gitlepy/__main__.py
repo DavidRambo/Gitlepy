@@ -1,16 +1,15 @@
 # gitletpy/__main__.py
 """Handles command-line arguments and dispatches to appropriate command."""
-from pathlib import Path
-import pickle
 import os.path
+import pickle
 import sys
+from pathlib import Path
 from typing import Tuple
 
 import click
 
 from gitlepy.index import Index
 from gitlepy.repository import Repo
-
 
 pass_repo = click.make_pass_decorator(Repo)
 

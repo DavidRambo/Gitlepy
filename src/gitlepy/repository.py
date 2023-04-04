@@ -1,20 +1,18 @@
 """Repository module for Gitlepy.
 Handles the logic for managing a Gitlepy repository.
 All commands from gitlepy.main are dispatched to various functions in this module."""
-from filecmp import cmp
-from pathlib import Path
 import pickle
-from queue import SimpleQueue
-from os import remove
 import shutil
 import tempfile
-from typing import Dict
-from typing import List
-from typing import Optional
+from filecmp import cmp
+from os import remove
+from pathlib import Path
+from queue import SimpleQueue
+from typing import Dict, List, Optional
 
-from gitlepy.index import Index
-from gitlepy.commit import Commit
 from gitlepy.blob import Blob
+from gitlepy.commit import Commit
+from gitlepy.index import Index
 
 
 class Repo:
@@ -167,8 +165,8 @@ class Repo:
 
         Such a file is either:
         - tracked in current commit, changed in working directory, but not staged;
-        - staged for addition, but with different contents than in the working directory;
-        - staged for addition, but deleted in the working directory;
+        - staged for addition but with different contents than in the working directory;
+        - staged for addition but deleted in the working directory;
         - tracked in the current commit and deleted from the working directory,
           but not staged for removal.
         """
@@ -316,8 +314,8 @@ class Repo:
         # Is it unchanged since most recent commit?
         head_commit = self.load_commit(self.head_commit_id())
         if (  # First condition avoids KeyError in blobs dict.
-            not filename not in head_commit.blobs.keys()
-            and new_blob.id == head_commit.blobs[filename]
+            not filename not in head_commit.blobs.keys() and
+            new_blob.id == head_commit.blobs[filename]
         ):
             # Yes -> Do not stage, and remove if already staged.
             if index.is_staged(filename):
@@ -326,8 +324,8 @@ class Repo:
                 print("No changes have been made to that file.")
         # Check whether file is already staged as well as since changed.
         elif (
-            filename in index.additions.keys()
-            and new_blob.id == index.additions[filename]
+            filename in index.additions.keys() and
+            new_blob.id == index.additions[filename]
         ):
             print("File is already staged in present state.")
         else:
@@ -581,8 +579,8 @@ class Repo:
         # Check for unstaged modifications files.
         if self.unstaged_modifications():
             print(
-                "There is a file with unstaged changes;"
-                + " delete it, or add and commit it first."
+                "There is a file with unstaged changes;" +
+                " delete it, or add and commit it first."
             )
             return True
 
@@ -918,6 +916,6 @@ class Repo:
             elif line < all_lines[mid]:
                 return self._binsearch(line, all_lines[:mid])
             elif line > all_lines[mid]:
-                return self._binsearch(line, all_lines[mid + 1 :])
+                return self._binsearch(line, all_lines[mid + 1:])
 
         return False
